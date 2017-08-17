@@ -14,3 +14,5 @@ HEADERS += \
     window.h \
     util.h \
     differentialevolver.h
+
+QMAKE_CXXFLAGS += -O3

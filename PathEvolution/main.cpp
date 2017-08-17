@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[])
 {
-    Window window(640, 480);
+    Window window(800, 600);
 
     window.loop();
 

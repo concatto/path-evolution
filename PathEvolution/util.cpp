@@ -18,6 +18,10 @@ double Util::binomialCoefficient(unsigned int n, unsigned int k)
     return factorial(n) / (factorial(k) * (factorial(n - k)));
 }
 
+double Util::toDegrees(double radians) {
+    return (radians / pi()) * 180;
+}
+
 Point2D Util::bezierCurve(double t, const std::vector<Point2D> points)
 {
     int n = points.size() - 1;
