@@ -51,7 +51,7 @@ std::vector<Point2D> Util::toPoints2D(const std::vector<double> &values)
 double Util::random(double min, double max)
 {
     static std::mt19937* generator = nullptr;
-    if (!generator) generator = new std::mt19937(std::clock() + std::hash<std::thread::id>()(std::this_thread::get_id()));
+    if (!generator) generator = new std::mt19937(/*std::clock() + std::hash<std::thread::id>()(std::this_thread::get_id())*/);
 
     std::uniform_real_distribution<double> distribution(min, max);
 
