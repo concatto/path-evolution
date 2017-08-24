@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <limits>
+#include <iostream>
 
 DifferentialEvolver::DifferentialEvolver(double crossoverRate, double scalingFactor)
     : crossoverRate(crossoverRate), scalingFactor(scalingFactor)
@@ -10,16 +11,19 @@ DifferentialEvolver::DifferentialEvolver(double crossoverRate, double scalingFac
 
 }
 
-void DifferentialEvolver::initialize(unsigned int popSize, unsigned int dimensionality, double min, double max)
+void DifferentialEvolver::initialize(unsigned int popSize, unsigned int dimensionality,
+                                     double min, double max, const Individual& prefix)
 {
     this->dimensionality = dimensionality;
+    this->prefixLength = prefix.size();
     for (unsigned int i = 0; i < popSize; i++) {
-        Individual ind;
+        Individual ind = prefix;
 
-        for (unsigned int j = 0; j < dimensionality; j++) {
+        for (unsigned int j = prefixLength; j < dimensionality; j++) {
             ind.push_back(Util::random(min, max));
         }
 
+        std::cout << ind[0] << ", " << ind[1] << "\n";
         population.push_back(ind);
         fitnesses.push_back(0);
     }
@@ -41,9 +45,9 @@ void DifferentialEvolver::improve()
         const Individual& c = population[agents[2]];
         Individual candidate = population[i];
 
-        unsigned int R = Util::irandom(0, dimensionality - 1);
+        unsigned int R = Util::irandom(prefixLength, dimensionality - 1);
 
-        for (unsigned int k = 0; k < dimensionality; k++) {
+        for (unsigned int k = prefixLength; k < dimensionality; k++) {
             double r = Util::random();
             if (r < crossoverRate || k == R) {
                 candidate[k] = a[k] + scalingFactor * (b[k] - c[k]);
@@ -70,4 +74,9 @@ const DifferentialEvolver::Individual& DifferentialEvolver::getBestIndividual() 
     unsigned int index = std::distance(fitnesses.begin(), it);
 
     return population[index];
+}
+
+double DifferentialEvolver::getFitness(unsigned int index) const
+{
+    return fitnesses[index];
 }

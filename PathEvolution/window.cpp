@@ -1,5 +1,4 @@
 #include "window.h"
-#include "differentialevolver.h"
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -9,6 +8,20 @@ Window::Window(int width, int height)
 {
     setFramerateLimit(60);
     arrays.push_back(sf::VertexArray(sf::LinesStrip));
+
+    destinationTex.loadFromFile("flag.png");
+    startTex.loadFromFile("start.png");
+
+    Util::centralizeObject(destination, destinationTex.getSize());
+    Util::centralizeObject(start, startTex.getSize());
+
+    destination.setTexture(destinationTex);
+    destination.setPosition(sf::Vector2f(width / 2.0, height / 2.0));
+    destination.setScale(0.3, 0.3);
+
+    start.setTexture(startTex);
+    start.setPosition(sf::Vector2f(width / 2.0, height / 2.0));
+    start.setScale(0.3, 0.3);
 }
 
 sf::Texture Window::constructScenario()
@@ -16,6 +29,15 @@ sf::Texture Window::constructScenario()
     sf::RenderTexture scenarioTexture;
     scenarioTexture.create(getSize().x, getSize().y);
     scenarioTexture.clear(sf::Color::Transparent);
+
+    sf::RectangleShape border(sf::Vector2f(getSize()) - sf::Vector2f(10, 10));
+    Util::centralizeObject(border);
+    border.setPosition(getSize().x / 2.0, getSize().y / 2.0);
+    border.setOutlineColor(sf::Color::White);
+    border.setOutlineThickness(10);
+    border.setFillColor(sf::Color::Transparent);
+
+    scenarioTexture.draw(border);
 
     sf::Event event;
     sf::Vector2f oldPosition;
@@ -29,6 +51,12 @@ sf::Texture Window::constructScenario()
             } else if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::Return) {
                     ended = true;
+                } else if (event.key.code == sf::Keyboard::Space) {
+                    destination.setPosition(sf::Vector2f(sf::Mouse::getPosition(*this)));
+                }
+            } else if (event.type == sf::Event::MouseButtonPressed) {
+                if (event.mouseButton.button == sf::Mouse::Right) {
+                    start.setPosition(event.mouseButton.x, event.mouseButton.y);
                 }
             }
         }
@@ -36,7 +64,7 @@ sf::Texture Window::constructScenario()
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
             sf::Vector2f pos = sf::Vector2f(sf::Mouse::getPosition(*this));
 
-            sf::CircleShape circle(10, 100);
+            sf::CircleShape circle(6, 100);
             circle.setOrigin(circle.getRadius(), circle.getRadius());
             circle.setPosition(pos);
             circle.setFillColor(sf::Color::White);
@@ -64,6 +92,8 @@ sf::Texture Window::constructScenario()
         scenarioTexture.display();
 
         clear();
+        draw(destination);
+        draw(start);
         draw(sf::Sprite(scenarioTexture.getTexture()));
         display();
     }
@@ -138,8 +168,60 @@ sf::VertexArray Window::constructBezierCurve(const std::vector<Point2D>& points,
     return va;
 }
 
+int Window::calculateNextPosition(int k, float speed, const sf::VertexArray& va)
+{
+    double deltaPosition = 0;
+    int nextK = k;
+    while (deltaPosition < speed) {
+        nextK++;
+        sf::Vector2f change = va[nextK].position - va[nextK - 1].position;
+        deltaPosition += std::hypot(change.x, change.y);
+    }
+
+    if (nextK >= va.getVertexCount()) {
+        return va.getVertexCount() - 1;
+    }
+    return nextK;
+}
+
+void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::Sprite& scenario)
+{
+    using EvaluatedIndividual = std::pair<DifferentialEvolver::Individual, double>;
+    std::vector<EvaluatedIndividual> pop;
+    const std::vector<DifferentialEvolver::Individual>& originalPopulation = evolver.getPopulation();
+
+    for (unsigned int i = 0; i < originalPopulation.size(); i++) {
+        pop.push_back({originalPopulation[i], evolver.getFitness(i)});
+    }
+
+    std::sort(pop.begin(), pop.end(), [&](const EvaluatedIndividual& a, const EvaluatedIndividual& b) {
+        return a.second < b.second;
+    });
+
+    sf::Font font;
+//    font.loadFromFile("arial.ttf");
+
+    for (const EvaluatedIndividual& ind : pop) {
+        clear();
+        draw(scenario);
+
+        sf::VertexArray va = constructBezierCurve(Util::toPoints2D(ind.first), 0.005, sf::Color::Red);
+        draw(va);
+
+//        sf::Text label(std::to_string(ind.second), font);
+//        label.setColor(sf::Color::White);
+
+//        draw(label);
+        display();
+
+        sf::sleep(sf::milliseconds(1));
+    }
+}
+
 void Window::loop()
 {
+    float speed = 1;
+
     sf::Texture scenarioTexture(constructScenario());
     sf::Image scenarioImage = scenarioTexture.copyToImage();
     sf::Sprite scenario(scenarioTexture);
@@ -157,8 +239,8 @@ void Window::loop()
         return shape;
     });
 
-    DifferentialEvolver evolver(0.5, 1);
-    evolver.initialize(20, 30, -0.2, 1.2);
+    DifferentialEvolver evolver(0.8, 0.1);
+    evolver.initialize(50, 20, -0.2, 1.2, {start.getPosition().x / getSize().x, start.getPosition().y / getSize().y});
 
     sf::Texture carTex;
     carTex.loadFromFile("car.png");
@@ -183,15 +265,21 @@ void Window::loop()
         int collisions = 0;
 
         sf::Vector2f oldPos;
+        sprite.setPosition(points[0].first, points[0].second);
+
+        double arcLength = 0;
+
         for (double t = 0; t <= 1; t += 0.005) {
             Point2D point = Util::bezierCurve(t, points);
             sf::Vector2f pos(point.first * getSize().x, point.second * getSize().y);
 
             if (t != 0 && !collided) {
                 sf::Vector2f delta = pos - oldPos;
+                arcLength += std::hypot(delta.x / getSize().x, delta.y / getSize().y);
+                float angle = std::atan2(delta.y, delta.x);
 
-                sprite.setPosition(oldPos);
-                sprite.setRotation(Util::toDegrees(std::atan2(delta.y, delta.x)) - 90);
+                sprite.setPosition(pos);
+                sprite.setRotation(Util::toDegrees(angle) - 90);
 
                 for (const sf::FloatRect& rect : rects) {
                     sf::FloatRect intersection;
@@ -206,12 +294,16 @@ void Window::loop()
             oldPos = pos;
         }
 
+        sf::Vector2f delta = destination.getPosition() - sprite.getPosition();
+        double euclideanDistance = std::hypot(delta.x / getSize().x, delta.y / getSize().y);
         sprite.setTexture(carTex);
-        return (collisions * 0.005);
+        return 1 / ((collisions * 0.05) + (euclideanDistance * 0.1) + (arcLength * 0.01));
     });
 
-    for (unsigned int i = 0; i < 100; i++) {
+    for (unsigned int i = 0; i < 400; i++) {
         evolver.improve();
+
+        displayTrajectories(evolver, scenario);
     }
 
     std::cout << clock.getElapsedTime().asMilliseconds() << "\n";
@@ -233,6 +325,8 @@ void Window::loop()
 
     sf::Event event;
 
+    sprite.setPosition(va[k].position);
+
     while (isOpen()) {
         while (pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
@@ -242,14 +336,17 @@ void Window::loop()
 
         clear();
 
-        sf::Vector2f vec = va[k].position - va[k - 1].position;
+        int nextK = calculateNextPosition(k, speed, va);
 
-        sprite.setPosition(va[k].position);
-        sprite.setRotation(Util::toDegrees(std::atan2(vec.y, vec.x)) - 90);
+        sf::Vector2f vec = va[nextK].position - va[k].position;
 
         if (k < limit) {
-            k++;
+            k = std::min(limit - 1, nextK);
         }
+
+        float angle = std::atan2(vec.y, vec.x);
+        sprite.setPosition(va[k].position.x, va[k].position.y);
+        sprite.setRotation(Util::toDegrees(angle) - 90);
 
         draw(sprite);
 
@@ -263,6 +360,8 @@ void Window::loop()
         draw(bounds);
         draw(scenario);
         draw(va);
+        draw(destination);
+        draw(start);
 
         for (const sf::RectangleShape& shape : rectShapes) {
             draw(shape);

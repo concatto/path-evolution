@@ -13,14 +13,17 @@ public:
 
     DifferentialEvolver(double crossoverRate, double scalingFactor);
 
-    void initialize(unsigned int popSize, unsigned int dimensionality, double min, double max);
+    void initialize(unsigned int popSize, unsigned int dimensionality,
+                    double min, double max, const Individual &prefix = Individual());
     void setObjectiveFunction(ObjectiveFunction function);
     void improve();
 
     const std::vector<Individual>& getPopulation() const;
     const DifferentialEvolver::Individual &getBestIndividual() const;
+    double getFitness(unsigned int index) const;
 private:
     unsigned int dimensionality;
+    unsigned int prefixLength;
     double crossoverRate;
     double scalingFactor;
     std::vector<Individual> population;
