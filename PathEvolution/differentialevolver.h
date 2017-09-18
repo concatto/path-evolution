@@ -14,7 +14,7 @@ public:
     DifferentialEvolver(double crossoverRate, double scalingFactor);
 
     void initialize(unsigned int popSize, unsigned int dimensionality,
-                    double min, double max, const Individual &prefix = Individual());
+                    double min, double max, const Individual &prefix = Individual(), const Individual& suffix = Individual());
     void setObjectiveFunction(ObjectiveFunction function);
     void improve();
 
@@ -24,6 +24,7 @@ public:
 private:
     unsigned int dimensionality;
     unsigned int prefixLength;
+    unsigned int suffixLength;
     double crossoverRate;
     double scalingFactor;
     std::vector<Individual> population;

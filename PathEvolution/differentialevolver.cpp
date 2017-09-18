@@ -12,18 +12,21 @@ DifferentialEvolver::DifferentialEvolver(double crossoverRate, double scalingFac
 }
 
 void DifferentialEvolver::initialize(unsigned int popSize, unsigned int dimensionality,
-                                     double min, double max, const Individual& prefix)
+                                     double min, double max, const Individual& prefix, const Individual& suffix)
 {
     this->dimensionality = dimensionality;
     this->prefixLength = prefix.size();
+    this->suffixLength = suffix.size();
     for (unsigned int i = 0; i < popSize; i++) {
         Individual ind = prefix;
 
-        for (unsigned int j = prefixLength; j < dimensionality; j++) {
+        for (unsigned int j = prefixLength; j < dimensionality - suffixLength; j++) {
             ind.push_back(Util::random(min, max));
         }
 
-        std::cout << ind[0] << ", " << ind[1] << "\n";
+        ind.insert(ind.end(), suffix.begin(), suffix.end());
+
+        std::cout << ind.back() << "\n";
         population.push_back(ind);
         fitnesses.push_back(0);
     }
@@ -45,9 +48,9 @@ void DifferentialEvolver::improve()
         const Individual& c = population[agents[2]];
         Individual candidate = population[i];
 
-        unsigned int R = Util::irandom(prefixLength, dimensionality - 1);
+        unsigned int R = Util::irandom(prefixLength, dimensionality - 1 - suffixLength);
 
-        for (unsigned int k = prefixLength; k < dimensionality; k++) {
+        for (unsigned int k = prefixLength; k < dimensionality - suffixLength; k++) {
             double r = Util::random();
             if (r < crossoverRate || k == R) {
                 candidate[k] = a[k] + scalingFactor * (b[k] - c[k]);

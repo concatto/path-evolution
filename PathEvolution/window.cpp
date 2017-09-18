@@ -158,7 +158,7 @@ sf::VertexArray Window::constructBezierCurve(const std::vector<Point2D>& points,
 {
     sf::VertexArray va(sf::PrimitiveType::LinesStrip);
 
-    for (double t = 0; t <= 1; t += step) {
+    for (double t = 0; t < (1 + step); t += step) {
         Point2D pos = Util::bezierCurve(t, points);
         sf::Vertex vertex(sf::Vector2f(pos.first * getSize().x, pos.second * getSize().y), color);
 
@@ -214,7 +214,7 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
 //        draw(label);
         display();
 
-        sf::sleep(sf::milliseconds(1));
+        sf::sleep(sf::microseconds(1));
     }
 }
 
@@ -240,7 +240,10 @@ void Window::loop()
     });
 
     DifferentialEvolver evolver(0.8, 0.1);
-    evolver.initialize(50, 20, -0.2, 1.2, {start.getPosition().x / getSize().x, start.getPosition().y / getSize().y});
+    evolver.initialize(100, 30, -0.5, 1.5,
+        {start.getPosition().x / getSize().x, start.getPosition().y / getSize().y},
+        {destination.getPosition().x / getSize().x, destination.getPosition().y / getSize().y}
+    );
 
     sf::Texture carTex;
     carTex.loadFromFile("car.png");
@@ -295,9 +298,9 @@ void Window::loop()
         }
 
         sf::Vector2f delta = destination.getPosition() - sprite.getPosition();
-        double euclideanDistance = std::hypot(delta.x / getSize().x, delta.y / getSize().y);
+//        double euclideanDistance = std::hypot(delta.x / getSize().x, delta.y / getSize().y);
         sprite.setTexture(carTex);
-        return 1 / ((collisions * 0.05) + (euclideanDistance * 0.1) + (arcLength * 0.01));
+        return 1 / ((collisions * 1) + (arcLength * 0));
     });
 
     for (unsigned int i = 0; i < 400; i++) {
