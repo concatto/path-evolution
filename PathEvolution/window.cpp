@@ -214,7 +214,7 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
 //        draw(label);
         display();
 
-        sf::sleep(sf::microseconds(1));
+//        sf::sleep(sf::microseconds(1));
     }
 }
 
@@ -239,7 +239,7 @@ void Window::loop()
         return shape;
     });
 
-    DifferentialEvolver evolver(0.8, 0.1);
+    DifferentialEvolver evolver(0.8, 0.05);
     evolver.initialize(100, 30, -0.5, 1.5,
         {start.getPosition().x / getSize().x, start.getPosition().y / getSize().y},
         {destination.getPosition().x / getSize().x, destination.getPosition().y / getSize().y}
@@ -271,6 +271,8 @@ void Window::loop()
         sprite.setPosition(points[0].first, points[0].second);
 
         double arcLength = 0;
+        double distanceSum = 0;
+        int steps = 0;
 
         for (double t = 0; t <= 1; t += 0.005) {
             Point2D point = Util::bezierCurve(t, points);
@@ -278,7 +280,10 @@ void Window::loop()
 
             if (t != 0 && !collided) {
                 sf::Vector2f delta = pos - oldPos;
+                sf::Vector2f deltaDestination = pos - destination.getPosition();
+
                 arcLength += std::hypot(delta.x / getSize().x, delta.y / getSize().y);
+                distanceSum += std::hypot(deltaDestination.x / getSize().x, deltaDestination.y / getSize().y);
                 float angle = std::atan2(delta.y, delta.x);
 
                 sprite.setPosition(pos);
@@ -294,13 +299,22 @@ void Window::loop()
                 }
             }
 
+            steps++;
+            if (collisions > 0) {
+                break;
+            }
+
             oldPos = pos;
         }
 
         sf::Vector2f delta = destination.getPosition() - sprite.getPosition();
-//        double euclideanDistance = std::hypot(delta.x / getSize().x, delta.y / getSize().y);
+
         sprite.setTexture(carTex);
-        return 1 / ((collisions * 1) + (arcLength * 0));
+        if (collisions > 0) {
+            return 1 / ((collisions * 999) + (1 / arcLength) + (distanceSum / (steps * 0.75)));
+        } else {
+            return 1 / ((arcLength * 1) + (distanceSum * 1));
+        }
     });
 
     for (unsigned int i = 0; i < 400; i++) {
