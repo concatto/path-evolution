@@ -3,8 +3,9 @@
 #include <iostream>
 #include <vector>
 
-Window::Window(int width, int height)
-    : sf::RenderWindow(sf::VideoMode(width, height), "PathEvolution")
+Window::Window(int width, int height) :
+    sf::RenderWindow(sf::VideoMode(width, height), "PathEvolution"),
+    selector(500, "Minimizar", "Maximizar")
 {
     setFramerateLimit(60);
     arrays.push_back(sf::VertexArray(sf::LinesStrip));
@@ -12,8 +13,8 @@ Window::Window(int width, int height)
     destinationTex.loadFromFile("flag.png");
     startTex.loadFromFile("start.png");
 
-    Util::centralizeObject(destination, destinationTex.getSize());
-    Util::centralizeObject(start, startTex.getSize());
+    Util::centralizeOrigin(destination, destinationTex.getSize());
+    Util::centralizeOrigin(start, startTex.getSize());
 
     destination.setTexture(destinationTex);
     destination.setPosition(sf::Vector2f(width / 2.0, height / 2.0));
@@ -31,7 +32,7 @@ sf::Texture Window::constructScenario()
     scenarioTexture.clear(sf::Color::Transparent);
 
     sf::RectangleShape border(sf::Vector2f(getSize()) - sf::Vector2f(10, 10));
-    Util::centralizeObject(border);
+    Util::centralizeOrigin(border);
     border.setPosition(getSize().x / 2.0, getSize().y / 2.0);
     border.setOutlineColor(sf::Color::White);
     border.setOutlineThickness(10);
@@ -59,6 +60,8 @@ sf::Texture Window::constructScenario()
                     start.setPosition(event.mouseButton.x, event.mouseButton.y);
                 }
             }
+
+            selector.processEvent(event);
         }
 
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
@@ -95,6 +98,8 @@ sf::Texture Window::constructScenario()
         draw(destination);
         draw(start);
         draw(sf::Sprite(scenarioTexture.getTexture()));
+
+        draw(selector);
         display();
     }
 
@@ -251,7 +256,7 @@ void Window::loop()
     sf::Texture whiteTex = colorizeTexture(carTex, sf::Color::White);
 
     sf::Sprite sprite(whiteTex);
-    Util::centralizeObject(sprite, carTex.getSize());
+    Util::centralizeOrigin(sprite, carTex.getSize());
     sprite.setScale(0.5, 0.5);
 
     sf::Clock clock;

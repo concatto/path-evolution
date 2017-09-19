@@ -3,6 +3,26 @@
 #include <random>
 #include <ctime>
 #include <thread>
+#include <iostream>
+
+sf::Font* Util::font = nullptr;
+
+sf::Texture Util::loadTexture(const std::string& file)
+{
+    sf::Texture tex;
+    tex.loadFromFile(file);
+    return tex;
+}
+
+sf::Font* Util::getFont()
+{
+    if (font == nullptr) {
+        font = new sf::Font;
+        font->loadFromFile("calibri.ttf");
+    }
+
+    return font;
+}
 
 double Util::factorial(double n)
 {

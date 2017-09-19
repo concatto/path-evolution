@@ -11,17 +11,22 @@ using Point2D = std::pair<double, double>;
 
 class Util
 {
+private:
+    static sf::Font* font;
+
 public:
     template <class T, class U>
-    static void centralizeObject(T& object, U size) {
+    static void centralizeOrigin(T& object, U size) {
         object.setOrigin(size.x / 2, size.y / 2);
     }
 
     template <class T>
-    static void centralizeObject(T& object) {
-        centralizeObject(object, object.getSize());
+    static void centralizeOrigin(T& object) {
+        centralizeOrigin(object, object.getSize());
     }
 
+    static sf::Texture loadTexture(const std::string& file);
+    static sf::Font* getFont();
     static double factorial(double n);
     static double binomialCoefficient(unsigned int n, unsigned int k);
     static Point2D bezierCurve(double t, const std::vector<Point2D> points);

@@ -5,11 +5,14 @@
 #include <vector>
 #include "util.h"
 #include "differentialevolver.h"
+#include "binaryselector.h"
 
 class Window : public sf::RenderWindow
 {
 private:
     std::vector<sf::VertexArray> arrays;
+
+    BinarySelector selector;
 
     sf::Texture destinationTex;
     sf::Texture startTex;
