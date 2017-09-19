@@ -5,7 +5,7 @@
 
 Window::Window(int width, int height) :
     sf::RenderWindow(sf::VideoMode(width, height), "PathEvolution"),
-    selector(500, "Minimizar", "Maximizar")
+    selector(300, L"Minimizar", L"Maximizar")
 {
     setFramerateLimit(60);
     arrays.push_back(sf::VertexArray(sf::LinesStrip));
@@ -23,6 +23,8 @@ Window::Window(int width, int height) :
     start.setTexture(startTex);
     start.setPosition(sf::Vector2f(width / 2.0, height / 2.0));
     start.setScale(0.3, 0.3);
+
+    selector.setTitle(L"Colisões");
 }
 
 sf::Texture Window::constructScenario()

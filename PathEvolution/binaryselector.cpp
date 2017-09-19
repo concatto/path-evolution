@@ -6,7 +6,7 @@ sf::Texture BinarySelector::leftTexture = Util::loadTexture("left2.png");
 sf::Texture BinarySelector::rightTexture = Util::loadTexture("right2.png");
 const sf::Color BinarySelector::TextColor = sf::Color(0x007fea);
 
-BinarySelector::BinarySelector(float width, const std::string& leftStr, const std::string& rightStr)
+BinarySelector::BinarySelector(float width, const std::wstring& leftStr, const std::wstring& rightStr)
 {
     background.setSize(sf::Vector2f(width, 100));
     background.setFillColor(sf::Color::White);
@@ -23,7 +23,11 @@ BinarySelector::BinarySelector(float width, const std::string& leftStr, const st
         text->setCharacterSize(16);
     }
 
-    left.setOrigin(left.getLocalBounds().left + left.getLocalBounds().width, 0);
+    title.setCharacterSize(24);
+
+    sf::FloatRect leftBounds = left.getLocalBounds();
+    left.setOrigin(leftBounds.left + leftBounds.width, leftBounds.height);
+    right.setOrigin(0, right.getLocalBounds().height);
 
     Util::centralizeOrigin(leftSprite, leftTexture.getSize());
     Util::centralizeOrigin(rightSprite, rightTexture.getSize());
@@ -46,14 +50,17 @@ void BinarySelector::setPosition(const sf::Vector2f& pos)
     background.setPosition(pos);
 
     sf::Vector2f size = background.getSize();
-    leftSprite.setPosition(pos.x + (size.x * 0.5), pos.y + (size.y * 0.7));
-    rightSprite.setPosition(pos.x + (size.x * 0.5), pos.y + (size.y * 0.7));
+    sf::Vector2f spritePos(pos.x + (size.x * 0.5), pos.y + (size.y * 0.7));
+    leftSprite.setPosition(spritePos);
+    rightSprite.setPosition(spritePos);
 
     float displacement = leftTexture.getSize().x * 0.6;
-    sf::Vector2f textPosition(pos.x + (size.x * 0.5), pos.y + (size.y * 0.55));
 
-    left.setPosition(textPosition - sf::Vector2f(displacement, 0));
-    right.setPosition(textPosition + sf::Vector2f(displacement, 0));
+    left.setPosition(spritePos - sf::Vector2f(displacement, 0));
+    right.setPosition(spritePos + sf::Vector2f(displacement, 0));
+
+    float margin = 10;
+    title.setPosition(pos.x + margin, pos.y + margin);
 }
 
 void BinarySelector::processEvent(const sf::Event& event)
@@ -67,7 +74,7 @@ void BinarySelector::processEvent(const sf::Event& event)
     }
 }
 
-void BinarySelector::setTitle(const std::string& title)
+void BinarySelector::setTitle(const std::wstring& title)
 {
     this->title.setString(title);
 }

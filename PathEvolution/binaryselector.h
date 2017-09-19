@@ -19,9 +19,9 @@ private:
     bool leftActive = true;
 
 public:
-    BinarySelector(float width, const std::string& leftStr, const std::string& rightStr);
+    BinarySelector(float width, const std::wstring& leftStr, const std::wstring& rightStr);
 
-    void setTitle(const std::string& title);
+    void setTitle(const std::wstring& title);
     bool isLeftActive() const;
     void setLeftActive(bool value);
     void setPosition(const sf::Vector2f& pos);
