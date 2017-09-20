@@ -14,12 +14,14 @@ SOURCES += main.cpp \
     window.cpp \
     util.cpp \
     differentialevolver.cpp \
-    binaryselector.cpp
+    binaryselector.cpp \
+    numericinput.cpp
 
 HEADERS += \
     window.h \
     util.h \
     differentialevolver.h \
-    binaryselector.h
+    binaryselector.h \
+    numericinput.h
 
 QMAKE_CXXFLAGS += -O3

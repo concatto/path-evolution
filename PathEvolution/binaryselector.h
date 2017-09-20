@@ -2,6 +2,7 @@
 #define BINARYSELECTOR_H
 
 #include <SFML/Graphics.hpp>
+#include "numericinput.h"
 
 class BinarySelector : public sf::Drawable
 {
@@ -10,6 +11,7 @@ private:
     static sf::Texture rightTexture;
     static const sf::Color TextColor;
 
+    NumericInput input;
     sf::Text title;
     sf::Text left;
     sf::Text right;

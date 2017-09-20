@@ -7,6 +7,7 @@ sf::Texture BinarySelector::rightTexture = Util::loadTexture("right2.png");
 const sf::Color BinarySelector::TextColor = sf::Color(0x007fea);
 
 BinarySelector::BinarySelector(float width, const std::wstring& leftStr, const std::wstring& rightStr)
+    : input(50)
 {
     background.setSize(sf::Vector2f(width, 100));
     background.setFillColor(sf::Color::White);
@@ -60,6 +61,7 @@ void BinarySelector::setPosition(const sf::Vector2f& pos)
     right.setPosition(spritePos + sf::Vector2f(displacement, 0));
 
     float margin = 10;
+    input.setPosition(pos + sf::Vector2f(100, margin));
     title.setPosition(pos.x + margin, pos.y + margin);
 }
 
@@ -72,6 +74,8 @@ void BinarySelector::processEvent(const sf::Event& event)
             }
         }
     }
+
+    input.processEvent(event);
 }
 
 void BinarySelector::setTitle(const std::wstring& title)
@@ -86,4 +90,5 @@ void BinarySelector::draw(sf::RenderTarget& target, sf::RenderStates states) con
     target.draw(title);
     target.draw(left);
     target.draw(right);
+    target.draw(input);
 }
