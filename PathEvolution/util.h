@@ -43,6 +43,7 @@ public:
     static std::set<unsigned int> chooseRandomlyOrdered(unsigned int count, unsigned int min, unsigned int max);
     static std::unordered_set<unsigned> chooseRandomlyRestricted(unsigned max, unsigned quantity, std::unordered_set<unsigned> restricted);
     static double toDegrees(double radians);
+    static float calculateFontMiddle(const sf::Font* font, unsigned int characterSize);
 };
 
 #endif // UTIL_H

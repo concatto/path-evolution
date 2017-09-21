@@ -11,7 +11,7 @@ NumericInput::NumericInput(float width)
     text.setString(textualValue);
     text.setFont(*Util::getFont());
     text.setFillColor(sf::Color::Black);
-    text.setCharacterSize(40);
+    text.setCharacterSize(20);
     text.setOrigin(0, 0);
 
     bounds.setFillColor(sf::Color::Transparent);
@@ -48,6 +48,11 @@ void NumericInput::processEvent(const sf::Event& event)
         }
 
         text.setString(textualValue);
+
+        if (text.getLocalBounds().width > rectangle.getSize().x) {
+            textualValue.pop_back();
+            text.setString(textualValue);
+        }
     } else if (event.type == sf::Event::MouseButtonPressed) {
         focused = rectangle.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y);
         if (focused) {

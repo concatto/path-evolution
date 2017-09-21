@@ -18,10 +18,16 @@ sf::Font* Util::getFont()
 {
     if (font == nullptr) {
         font = new sf::Font;
-        font->loadFromFile("calibri.ttf");
+        font->loadFromFile("arial.ttf");
     }
 
     return font;
+}
+
+float Util::calculateFontMiddle(const sf::Font* font, unsigned int characterSize) {
+    const sf::Glyph& upper = font->getGlyph('O', characterSize, false);
+
+    return upper.bounds.height / 2;
 }
 
 double Util::factorial(double n)

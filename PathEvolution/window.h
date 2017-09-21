@@ -10,8 +10,12 @@
 class Window : public sf::RenderWindow
 {
 private:
+    static const sf::Color paneColor;
+    float paneWidth = 300;
+    sf::Vector2f stageSize;
     std::vector<sf::VertexArray> arrays;
 
+    sf::RectangleShape pane;
     BinarySelector selector;
 
     sf::Texture destinationTex;
@@ -30,6 +34,7 @@ private:
 
     int calculateNextPosition(int k, float speed, const sf::VertexArray &va);
     void displayTrajectories(const DifferentialEvolver &evolver, const sf::Sprite &scenario);
+    bool isInStage(const sf::Vector2f& point);
 public:
     Window(int width, int height);
 

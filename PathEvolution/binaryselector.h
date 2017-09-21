@@ -28,6 +28,7 @@ public:
     void setLeftActive(bool value);
     void setPosition(const sf::Vector2f& pos);
     void processEvent(const sf::Event& event);
+    void setBackgroundColor(const sf::Color& color);
     void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
 };
 

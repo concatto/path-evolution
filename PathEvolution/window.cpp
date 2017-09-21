@@ -3,10 +3,14 @@
 #include <iostream>
 #include <vector>
 
+const sf::Color Window::paneColor = sf::Color(0xEBEBEBFF);
+
 Window::Window(int width, int height) :
     sf::RenderWindow(sf::VideoMode(width, height), "PathEvolution"),
-    selector(300, L"Minimizar", L"Maximizar")
-{
+    selector(paneWidth, L"Minimizar", L"Maximizar"),
+    stageSize(width - paneWidth, height),
+    pane(sf::Vector2f(paneWidth, height))
+{    
     setFramerateLimit(60);
     arrays.push_back(sf::VertexArray(sf::LinesStrip));
 
@@ -17,25 +21,30 @@ Window::Window(int width, int height) :
     Util::centralizeOrigin(start, startTex.getSize());
 
     destination.setTexture(destinationTex);
-    destination.setPosition(sf::Vector2f(width / 2.0, height / 2.0));
+    destination.setPosition(sf::Vector2f(stageSize.x / 2.0, height / 2.0));
     destination.setScale(0.3, 0.3);
 
     start.setTexture(startTex);
-    start.setPosition(sf::Vector2f(width / 2.0, height / 2.0));
+    start.setPosition(sf::Vector2f(stageSize.x / 2.0, height / 2.0));
     start.setScale(0.3, 0.3);
 
+    selector.setPosition(sf::Vector2f(stageSize.x, 0));
     selector.setTitle(L"Colisões");
+    selector.setBackgroundColor(paneColor);
+
+    pane.setFillColor(paneColor);
+    pane.setPosition(stageSize.x, 0);
 }
 
 sf::Texture Window::constructScenario()
 {
     sf::RenderTexture scenarioTexture;
-    scenarioTexture.create(getSize().x, getSize().y);
+    scenarioTexture.create(stageSize.x, stageSize.y);
     scenarioTexture.clear(sf::Color::Transparent);
 
-    sf::RectangleShape border(sf::Vector2f(getSize()) - sf::Vector2f(10, 10));
+    sf::RectangleShape border(sf::Vector2f(stageSize) - sf::Vector2f(10, 10));
     Util::centralizeOrigin(border);
-    border.setPosition(getSize().x / 2.0, getSize().y / 2.0);
+    border.setPosition(stageSize.x / 2.0, stageSize.y / 2.0);
     border.setOutlineColor(sf::Color::White);
     border.setOutlineThickness(10);
     border.setFillColor(sf::Color::Transparent);
@@ -48,34 +57,34 @@ sf::Texture Window::constructScenario()
     bool ended = false;
 
     while (isOpen() && !ended) {
-        while (pollEvent(event)) {
+        sf::Vector2f mousePos(sf::Mouse::getPosition(*this));
+
+        while (pollEvent(event)) {    
             if (event.type == sf::Event::Closed) {
                 close();
             } else if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::Return) {
                     ended = true;
-                } else if (event.key.code == sf::Keyboard::Space) {
-                    destination.setPosition(sf::Vector2f(sf::Mouse::getPosition(*this)));
+                } else if (event.key.code == sf::Keyboard::Space && isInStage(mousePos)) {
+                    destination.setPosition(mousePos);
                 }
             } else if (event.type == sf::Event::MouseButtonPressed) {
-                if (event.mouseButton.button == sf::Mouse::Right) {
-                    start.setPosition(event.mouseButton.x, event.mouseButton.y);
+                if (event.mouseButton.button == sf::Mouse::Right && isInStage(mousePos)) {
+                    start.setPosition(mousePos);
                 }
             }
 
             selector.processEvent(event);
         }
 
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-            sf::Vector2f pos = sf::Vector2f(sf::Mouse::getPosition(*this));
-
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && isInStage(mousePos)) {
             sf::CircleShape circle(6, 100);
             circle.setOrigin(circle.getRadius(), circle.getRadius());
-            circle.setPosition(pos);
+            circle.setPosition(mousePos);
             circle.setFillColor(sf::Color::White);
 
             if (isLeftPressed) {
-                sf::Vector2f delta = pos - oldPosition;
+                sf::Vector2f delta = mousePos - oldPosition;
                 sf::RectangleShape internal(sf::Vector2f(std::hypot(delta.x, delta.y), circle.getRadius() * 2));
 
                 internal.setFillColor(sf::Color::White);
@@ -88,8 +97,9 @@ sf::Texture Window::constructScenario()
 
             scenarioTexture.draw(circle);
             scenarioTexture.display();
+            oldPosition = mousePos;
+
             isLeftPressed = true;
-            oldPosition = pos;
         } else {
             isLeftPressed = false;
         }
@@ -100,13 +110,17 @@ sf::Texture Window::constructScenario()
         draw(destination);
         draw(start);
         draw(sf::Sprite(scenarioTexture.getTexture()));
-
+        draw(pane);
         draw(selector);
         display();
     }
 
     sf::Texture tex(scenarioTexture.getTexture());
     return tex;
+}
+
+bool Window::isInStage(const sf::Vector2f& point) {
+    return point.x < stageSize.x;
 }
 
 bool Window::isEmpty(const sf::Image& image, sf::FloatRect rect) {
@@ -167,7 +181,7 @@ sf::VertexArray Window::constructBezierCurve(const std::vector<Point2D>& points,
 
     for (double t = 0; t < (1 + step); t += step) {
         Point2D pos = Util::bezierCurve(t, points);
-        sf::Vertex vertex(sf::Vector2f(pos.first * getSize().x, pos.second * getSize().y), color);
+        sf::Vertex vertex(sf::Vector2f(pos.first * stageSize.x, pos.second * stageSize.y), color);
 
         va.append(vertex);
     }
@@ -248,8 +262,8 @@ void Window::loop()
 
     DifferentialEvolver evolver(0.8, 0.05);
     evolver.initialize(100, 30, -0.5, 1.5,
-        {start.getPosition().x / getSize().x, start.getPosition().y / getSize().y},
-        {destination.getPosition().x / getSize().x, destination.getPosition().y / getSize().y}
+        {start.getPosition().x / stageSize.x, start.getPosition().y / stageSize.y},
+        {destination.getPosition().x / stageSize.x, destination.getPosition().y / stageSize.y}
     );
 
     sf::Texture carTex;
@@ -283,14 +297,14 @@ void Window::loop()
 
         for (double t = 0; t <= 1; t += 0.005) {
             Point2D point = Util::bezierCurve(t, points);
-            sf::Vector2f pos(point.first * getSize().x, point.second * getSize().y);
+            sf::Vector2f pos(point.first * stageSize.x, point.second * stageSize.y);
 
             if (t != 0 && !collided) {
                 sf::Vector2f delta = pos - oldPos;
                 sf::Vector2f deltaDestination = pos - destination.getPosition();
 
-                arcLength += std::hypot(delta.x / getSize().x, delta.y / getSize().y);
-                distanceSum += std::hypot(deltaDestination.x / getSize().x, deltaDestination.y / getSize().y);
+                arcLength += std::hypot(delta.x / stageSize.x, delta.y / stageSize.y);
+                distanceSum += std::hypot(deltaDestination.x / stageSize.x, deltaDestination.y / stageSize.y);
                 float angle = std::atan2(delta.y, delta.x);
 
                 sprite.setPosition(pos);
