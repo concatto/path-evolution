@@ -6,7 +6,7 @@
 const sf::Color Window::paneColor = sf::Color(0xEBEBEBFF);
 
 Window::Window(int width, int height) :
-    sf::RenderWindow(sf::VideoMode(width, height), "PathEvolution"),
+    sf::RenderWindow(sf::VideoMode(width, height), "PathEvolution", sf::Style::Default, sf::ContextSettings(0, 0, 8)),
     stageSize(width - paneWidth, height),
     pane(sf::Vector2f(paneWidth, height)),
     collisionSelector(paneWidth, L"Minimizar", L"Maximizar")
@@ -34,6 +34,7 @@ Window::Window(int width, int height) :
 
     pane.setFillColor(paneColor);
     pane.setPosition(stageSize.x, 0);
+
 }
 
 sf::Texture Window::constructScenario()
@@ -247,7 +248,7 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
 
 //        draw(label);
     }
-    sf::sleep(sf::milliseconds(10));
+    sf::sleep(sf::milliseconds(5));
     drawPane();
     display();
 }
@@ -279,7 +280,7 @@ void Window::loop()
         return shape;
     });
 
-    DifferentialEvolver evolver(0.8, 0.15);
+    DifferentialEvolver evolver(0.7, 0.05);
     evolver.initialize(50, 30, -0.5, 1.5,
         {start.getPosition().x / stageSize.x, start.getPosition().y / stageSize.y},
         {destination.getPosition().x / stageSize.x, destination.getPosition().y / stageSize.y}
