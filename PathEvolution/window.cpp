@@ -7,9 +7,9 @@ const sf::Color Window::paneColor = sf::Color(0xEBEBEBFF);
 
 Window::Window(int width, int height) :
     sf::RenderWindow(sf::VideoMode(width, height), "PathEvolution"),
-    selector(paneWidth, L"Minimizar", L"Maximizar"),
     stageSize(width - paneWidth, height),
-    pane(sf::Vector2f(paneWidth, height))
+    pane(sf::Vector2f(paneWidth, height)),
+    collisionSelector(paneWidth, L"Minimizar", L"Maximizar")
 {    
     setFramerateLimit(60);
     arrays.push_back(sf::VertexArray(sf::LinesStrip));
@@ -28,9 +28,9 @@ Window::Window(int width, int height) :
     start.setPosition(sf::Vector2f(stageSize.x / 2.0, height / 2.0));
     start.setScale(0.3, 0.3);
 
-    selector.setPosition(sf::Vector2f(stageSize.x, 0));
-    selector.setTitle(L"Colisões");
-    selector.setBackgroundColor(paneColor);
+    collisionSelector.setPosition(sf::Vector2f(stageSize.x, 0));
+    collisionSelector.setTitle(L"Colisões");
+    collisionSelector.setBackgroundColor(paneColor);
 
     pane.setFillColor(paneColor);
     pane.setPosition(stageSize.x, 0);
@@ -74,7 +74,7 @@ sf::Texture Window::constructScenario()
                 }
             }
 
-            selector.processEvent(event);
+            collisionSelector.processEvent(event);
         }
 
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && isInStage(mousePos)) {
@@ -110,8 +110,7 @@ sf::Texture Window::constructScenario()
         draw(destination);
         draw(start);
         draw(sf::Sprite(scenarioTexture.getTexture()));
-        draw(pane);
-        draw(selector);
+        drawPane();
         display();
     }
 
@@ -211,8 +210,13 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
     std::vector<EvaluatedIndividual> pop;
     const std::vector<DifferentialEvolver::Individual>& originalPopulation = evolver.getPopulation();
 
+    double maxFitness = std::numeric_limits<double>::min();
     for (unsigned int i = 0; i < originalPopulation.size(); i++) {
         pop.push_back({originalPopulation[i], evolver.getFitness(i)});
+
+        if (pop.back().second > maxFitness) {
+            maxFitness = pop.back().second;
+        }
     }
 
     std::sort(pop.begin(), pop.end(), [&](const EvaluatedIndividual& a, const EvaluatedIndividual& b) {
@@ -223,20 +227,35 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
 //    font.loadFromFile("arial.ttf");
 
     for (const EvaluatedIndividual& ind : pop) {
-        clear();
-        draw(scenario);
+        if (generation >= 5) {
+            trajectories.pop_front();
+        }
 
-        sf::VertexArray va = constructBezierCurve(Util::toPoints2D(ind.first), 0.005, sf::Color::Red);
+        int alpha = std::floor((ind.second / maxFitness) * 255.0);
+        std::vector<Point2D> points = Util::toPoints2D(ind.first);
+        trajectories.push_back(constructBezierCurve(points, 0.005, sf::Color(255, 0, 0, alpha)));
+    }
+
+    std::cout << trajectories.size() << "\n";
+    clear();
+    draw(scenario);
+    for (const sf::VertexArray& va : trajectories) {
         draw(va);
 
 //        sf::Text label(std::to_string(ind.second), font);
 //        label.setColor(sf::Color::White);
 
 //        draw(label);
-        display();
-
-//        sf::sleep(sf::microseconds(1));
     }
+    sf::sleep(sf::milliseconds(10));
+    drawPane();
+    display();
+}
+
+void Window::drawPane()
+{
+    draw(pane);
+    draw(collisionSelector);
 }
 
 void Window::loop()
@@ -260,8 +279,8 @@ void Window::loop()
         return shape;
     });
 
-    DifferentialEvolver evolver(0.8, 0.05);
-    evolver.initialize(100, 30, -0.5, 1.5,
+    DifferentialEvolver evolver(0.8, 0.15);
+    evolver.initialize(50, 30, -0.5, 1.5,
         {start.getPosition().x / stageSize.x, start.getPosition().y / stageSize.y},
         {destination.getPosition().x / stageSize.x, destination.getPosition().y / stageSize.y}
     );
@@ -286,7 +305,7 @@ void Window::loop()
         std::vector<Point2D> points = Util::toPoints2D(ind);
 
         bool collided = false;
-        int collisions = 0;
+        double collisions = 0;
 
         sf::Vector2f oldPos;
         sprite.setPosition(points[0].first, points[0].second);
@@ -322,7 +341,7 @@ void Window::loop()
 
             steps++;
             if (collisions > 0) {
-                break;
+//                break;
             }
 
             oldPos = pos;
@@ -331,14 +350,19 @@ void Window::loop()
         sf::Vector2f delta = destination.getPosition() - sprite.getPosition();
 
         sprite.setTexture(carTex);
-        if (collisions > 0) {
-            return 1 / ((collisions * 999) + (1 / arcLength) + (distanceSum / (steps * 0.75)));
-        } else {
-            return 1 / ((arcLength * 1) + (distanceSum * 1));
+        if (collisionSelector.isLeftActive()) {
+            collisions = 1 / (collisions + 1E-3); //verificar
         }
+
+        return collisions;
+//        if (collisions > 0) {
+//            return 1 / ((collisions * 999) + (1 / arcLength) + (distanceSum / (steps * 0.75)));
+//        } else {
+//            return 1 / ((arcLength * 1) + (distanceSum * 1));
+//        }
     });
 
-    for (unsigned int i = 0; i < 400; i++) {
+    for (generation = 0; generation < 400; generation++) {
         evolver.improve();
 
         displayTrajectories(evolver, scenario);
