@@ -4,6 +4,8 @@
 #include <ctime>
 #include <thread>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 sf::Font* Util::font = nullptr;
 
@@ -22,6 +24,16 @@ sf::Font* Util::getFont()
     }
 
     return font;
+}
+
+std::string Util::readEntireFile(const std::string& path) {
+    std::ifstream in(path);
+    std::ostringstream oss;
+    std::string line;
+    while (std::getline(in, line)) {
+        oss << line;
+    }
+    return oss.str();
 }
 
 float Util::calculateFontMiddle(const sf::Font* font, unsigned int characterSize) {

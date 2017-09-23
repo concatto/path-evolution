@@ -44,6 +44,7 @@ public:
     static std::unordered_set<unsigned> chooseRandomlyRestricted(unsigned max, unsigned quantity, std::unordered_set<unsigned> restricted);
     static double toDegrees(double radians);
     static float calculateFontMiddle(const sf::Font* font, unsigned int characterSize);
+    static std::string readEntireFile(const std::string& path);
 };
 
 #endif // UTIL_H

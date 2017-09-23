@@ -26,6 +26,7 @@ private:
     sf::Sprite start;
 
     std::deque<sf::VertexArray> trajectories;
+    sf::Shader shader;
 
     int generation;
 

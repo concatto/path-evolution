@@ -35,6 +35,9 @@ Window::Window(int width, int height) :
     pane.setFillColor(paneColor);
     pane.setPosition(stageSize.x, 0);
 
+    shader.loadFromMemory(Util::readEntireFile("light.frag"), sf::Shader::Fragment);
+    shader.setUniform("texture", sf::Shader::CurrentTexture);
+    shader.setUniform("step", sf::Vector2f(1 / stageSize.x, 1 / stageSize.y));
 }
 
 sf::Texture Window::constructScenario()
@@ -237,17 +240,28 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
         trajectories.push_back(constructBezierCurve(points, 0.005, sf::Color(255, 0, 0, alpha)));
     }
 
-    std::cout << trajectories.size() << "\n";
+    sf::RenderTexture buffer;
+    buffer.create(stageSize.x, stageSize.y);
+    buffer.clear(sf::Color::Transparent);
+    for (const sf::VertexArray& va : trajectories) {
+        buffer.draw(va);
+    }
+    buffer.display();
+
+    shader.setUniform("direction", sf::Vector2f(1, 0));
+
+    sf::RenderTexture buffer2;
+    buffer2.create(stageSize.x, stageSize.y);
+    buffer2.clear(sf::Color::Transparent);
+    buffer2.draw(sf::Sprite(buffer.getTexture()), sf::RenderStates(&shader));
+    buffer2.display();
+
+    shader.setUniform("direction", sf::Vector2f(0, 1));
+
     clear();
     draw(scenario);
-    for (const sf::VertexArray& va : trajectories) {
-        draw(va);
-
-//        sf::Text label(std::to_string(ind.second), font);
-//        label.setColor(sf::Color::White);
-
-//        draw(label);
-    }
+    draw(sf::Sprite(buffer.getTexture()));
+    draw(sf::Sprite(buffer.getTexture()), sf::RenderStates(&shader));
     sf::sleep(sf::milliseconds(5));
     drawPane();
     display();
