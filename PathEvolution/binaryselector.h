@@ -11,7 +11,6 @@ private:
     static sf::Texture rightTexture;
     static const sf::Color TextColor;
 
-    NumericInput input;
     sf::Text title;
     sf::Text left;
     sf::Text right;
@@ -21,15 +20,20 @@ private:
     bool leftActive = true;
 
 public:
-    BinarySelector(float width, const std::wstring& leftStr, const std::wstring& rightStr);
+    BinarySelector();
 
+    void setLeftString(const std::wstring& str);
+    void setRightString(const std::wstring& str);
     void setTitle(const std::wstring& title);
     bool isLeftActive() const;
     void setLeftActive(bool value);
-    void setPosition(const sf::Vector2f& pos);
-    void processEvent(const sf::Event& event);
     void setBackgroundColor(const sf::Color& color);
-    void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
+    virtual void setWidth(float width);
+    virtual void setPosition(const sf::Vector2f& pos);
+    virtual void processEvent(const sf::Event& event);
+    virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
+
+    const sf::RectangleShape& getBackground() const;
 };
 
 #endif // BINARYSELECTOR_H

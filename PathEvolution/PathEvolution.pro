@@ -15,13 +15,15 @@ SOURCES += main.cpp \
     util.cpp \
     differentialevolver.cpp \
     binaryselector.cpp \
-    numericinput.cpp
+    numericinput.cpp \
+    weightedbinaryselector.cpp
 
 HEADERS += \
     window.h \
     util.h \
     differentialevolver.h \
     binaryselector.h \
-    numericinput.h
+    numericinput.h \
+    weightedbinaryselector.h
 
 QMAKE_CXXFLAGS += -O3

@@ -2,15 +2,15 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <array>
 
 const sf::Color Window::paneColor = sf::Color(0xEBEBEBFF);
 
 Window::Window(int width, int height) :
     sf::RenderWindow(sf::VideoMode(width, height), "PathEvolution", sf::Style::Default, sf::ContextSettings(0, 0, 8)),
     stageSize(width - paneWidth, height),
-    pane(sf::Vector2f(paneWidth, height)),
-    collisionSelector(paneWidth, L"Minimizar", L"Maximizar")
-{    
+    pane(sf::Vector2f(paneWidth, height))
+{
     setFramerateLimit(60);
     arrays.push_back(sf::VertexArray(sf::LinesStrip));
 
@@ -28,16 +28,29 @@ Window::Window(int width, int height) :
     start.setPosition(sf::Vector2f(stageSize.x / 2.0, height / 2.0));
     start.setScale(0.3, 0.3);
 
-    collisionSelector.setPosition(sf::Vector2f(stageSize.x, 0));
-    collisionSelector.setTitle(L"Colisões");
-    collisionSelector.setBackgroundColor(paneColor);
+    std::tuple<std::string, std::string, std::string> data{"a", "b", "c"};
+    std::cout << std::get<0>(data) << "\n";
+
+    objectiveData.insert(objectiveData.end(), {
+        {&collisionSelector, {L"Colisões", L"Minimizar", L"Maximizar"}},
+        {&automaticDestinationSelector, {L"Destino automático", L"Desativar", L"Ativar"}},
+    });
+
+    for (const SelectorConfig& config : objectiveData) {
+        BinarySelector* selector = config.first;
+        selector->setTitle(config.second[0]);
+        selector->setLeftString(config.second[1]);
+        selector->setRightString(config.second[2]);
+        selector->setBackgroundColor(paneColor);
+        selector->setWidth(paneWidth);
+    }
 
     pane.setFillColor(paneColor);
     pane.setPosition(stageSize.x, 0);
 
     shader.loadFromMemory(Util::readEntireFile("light.frag"), sf::Shader::Fragment);
     shader.setUniform("texture", sf::Shader::CurrentTexture);
-    shader.setUniform("step", sf::Vector2f(1 / stageSize.x, 1 / stageSize.y));
+    shader.setUniform("resolution", stageSize);
 }
 
 sf::Texture Window::constructScenario()
@@ -78,7 +91,9 @@ sf::Texture Window::constructScenario()
                 }
             }
 
-            collisionSelector.processEvent(event);
+            for (const SelectorConfig& config : objectiveData) {
+                config.first->processEvent(event);
+            }
         }
 
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && isInStage(mousePos)) {
@@ -240,6 +255,13 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
         trajectories.push_back(constructBezierCurve(points, 0.005, sf::Color(255, 0, 0, alpha)));
     }
 
+    sf::RenderTexture buffer1;
+    sf::RenderTexture buffer2;
+    buffer1.create(stageSize.x, stageSize.y);
+    buffer2.create(stageSize.x, stageSize.y);
+
+    buffer1.clear(sf::Color::Transparent);
+
     sf::RenderTexture buffer;
     buffer.create(stageSize.x, stageSize.y);
     buffer.clear(sf::Color::Transparent);
@@ -248,21 +270,38 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
     }
     buffer.display();
 
-    shader.setUniform("direction", sf::Vector2f(1, 0));
-
-    sf::RenderTexture buffer2;
-    buffer2.create(stageSize.x, stageSize.y);
     buffer2.clear(sf::Color::Transparent);
-    buffer2.draw(sf::Sprite(buffer.getTexture()), sf::RenderStates(&shader));
+    buffer2.draw(sf::Sprite(buffer.getTexture()));
     buffer2.display();
 
-    shader.setUniform("direction", sf::Vector2f(0, 1));
+//    float coef = 0.1666f;
+//    float potency = coef * std::sin(generation * 0.05f * 6.2831853f) + coef;
+//    potency += 0.1f;
+//    std::cout << potency << "\n";
+
+    float potency = 0.7f;
+
+    int iter = 3;
+    for (int i = 0; i < iter; i++) {
+        float r = (iter - i - 1) * potency;
+        shader.setUniform("direction", sf::Vector2f(r, 0));
+
+//        buffer1.clear(sf::Color::Transparent);
+        buffer1.draw(sf::Sprite(buffer2.getTexture()), sf::RenderStates(&shader));
+        buffer1.display();
+
+        shader.setUniform("direction", sf::Vector2f(0, r));
+
+//        buffer2.clear(sf::Color::Transparent);
+        buffer2.draw(sf::Sprite(buffer1.getTexture()), sf::RenderStates(&shader));
+        buffer2.display();
+    }
 
     clear();
     draw(scenario);
     draw(sf::Sprite(buffer.getTexture()));
-    draw(sf::Sprite(buffer.getTexture()), sf::RenderStates(&shader));
-    sf::sleep(sf::milliseconds(5));
+    draw(sf::Sprite(buffer2.getTexture()));
+    sf::sleep(sf::milliseconds(3));
     drawPane();
     display();
 }
@@ -270,7 +309,19 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
 void Window::drawPane()
 {
     draw(pane);
-    draw(collisionSelector);
+    std::vector<BinarySelector*> selectors{
+        &collisionSelector, &automaticDestinationSelector
+    };
+
+    float heightSum = 0;
+    for (int i = 0; i < selectors.size(); i++) {
+        BinarySelector* selector = selectors[i];
+
+        selector->setPosition(sf::Vector2f(stageSize.x, heightSum));
+        heightSum += selector->getBackground().getSize().y;
+
+        draw(*selector);
+    }
 }
 
 void Window::loop()
@@ -294,10 +345,15 @@ void Window::loop()
         return shape;
     });
 
+    std::vector<double> suffix{
+        destination.getPosition().x / stageSize.x,
+        destination.getPosition().y / stageSize.y
+    };
+
     DifferentialEvolver evolver(0.7, 0.05);
     evolver.initialize(50, 30, -0.5, 1.5,
         {start.getPosition().x / stageSize.x, start.getPosition().y / stageSize.y},
-        {destination.getPosition().x / stageSize.x, destination.getPosition().y / stageSize.y}
+        (automaticDestinationSelector.isLeftActive() ? std::vector<double>() : suffix)
     );
 
     sf::Texture carTex;

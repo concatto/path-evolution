@@ -6,18 +6,23 @@
 #include <deque>
 #include "util.h"
 #include "differentialevolver.h"
+#include "weightedbinaryselector.h"
 #include "binaryselector.h"
 
 class Window : public sf::RenderWindow
 {
 private:
+    using SelectorConfig = std::pair<BinarySelector*, std::array<std::wstring, 3>>;
+
     static const sf::Color paneColor;
     float paneWidth = 300;
     sf::Vector2f stageSize;
     std::vector<sf::VertexArray> arrays;
 
+    std::vector<SelectorConfig> objectiveData;
     sf::RectangleShape pane;
-    BinarySelector collisionSelector;
+    WeightedBinarySelector collisionSelector;
+    BinarySelector automaticDestinationSelector;
 
     sf::Texture destinationTex;
     sf::Texture startTex;

@@ -5,15 +5,13 @@
 sf::Texture BinarySelector::leftTexture = Util::loadTexture("left3.png");
 sf::Texture BinarySelector::rightTexture = Util::loadTexture("right3.png");
 
-BinarySelector::BinarySelector(float width, const std::wstring& leftStr, const std::wstring& rightStr)
-    : input(50)
+BinarySelector::BinarySelector()
 {
-    background.setSize(sf::Vector2f(width, 100));
     leftSprite.setTexture(leftTexture);
     rightSprite.setTexture(rightTexture);
 
-    left.setString(leftStr);
-    right.setString(rightStr);
+    left.setString("");
+    right.setString("");
 
     for (sf::Text* text : {&left, &right, &title}) {
         sf::Font* font = Util::getFont();
@@ -22,11 +20,7 @@ BinarySelector::BinarySelector(float width, const std::wstring& leftStr, const s
         text->setCharacterSize(17);
     }
 
-    title.setCharacterSize(26);
-
-    sf::FloatRect leftBounds = left.getLocalBounds();
-    left.setOrigin(leftBounds.left + leftBounds.width, 0);
-    right.setOrigin(0, 0);
+    title.setCharacterSize(23);
 
     Util::centralizeOrigin(leftSprite, leftTexture.getSize());
     Util::centralizeOrigin(rightSprite, rightTexture.getSize());
@@ -35,9 +29,24 @@ BinarySelector::BinarySelector(float width, const std::wstring& leftStr, const s
     setBackgroundColor(sf::Color::White);
 }
 
+void BinarySelector::setLeftString(const std::wstring& str)
+{
+    left.setString(str);
+}
+
+void BinarySelector::setRightString(const std::wstring& str)
+{
+    right.setString(str);
+}
+
 void BinarySelector::setBackgroundColor(const sf::Color& color)
 {
     background.setFillColor(color);
+}
+
+void BinarySelector::setWidth(float width)
+{
+    background.setSize(sf::Vector2f(width, 100));
 }
 
 bool BinarySelector::isLeftActive() const
@@ -52,6 +61,10 @@ void BinarySelector::setLeftActive(bool value)
 
 void BinarySelector::setPosition(const sf::Vector2f& pos)
 {
+    sf::FloatRect leftBounds = left.getLocalBounds();
+    left.setOrigin(leftBounds.left + leftBounds.width, 0);
+    right.setOrigin(0, 0);
+
     background.setPosition(pos);
 
     sf::Vector2f size = background.getSize();
@@ -71,7 +84,6 @@ void BinarySelector::setPosition(const sf::Vector2f& pos)
     right.move(0, -delta - verticalShift);
 
     float margin = 10;
-    input.setPosition(pos + sf::Vector2f(100, margin));
     title.setPosition(pos.x + margin, pos.y + margin);
 }
 
@@ -84,8 +96,6 @@ void BinarySelector::processEvent(const sf::Event& event)
             }
         }
     }
-
-    input.processEvent(event);
 }
 
 void BinarySelector::setTitle(const std::wstring& title)
@@ -100,10 +110,15 @@ void BinarySelector::draw(sf::RenderTarget& target, sf::RenderStates states) con
     target.draw(title);
     target.draw(left);
     target.draw(right);
-    target.draw(input);
     sf::CircleShape shape(1);
 
     shape.setFillColor(sf::Color::Red);
     shape.setPosition(left.getGlobalBounds().left, left.getGlobalBounds().top);
     target.draw(shape);
 }
+
+const sf::RectangleShape& BinarySelector::getBackground() const
+{
+    return background;
+}
+
