@@ -27,6 +27,8 @@ public:
     void setTitle(const std::wstring& title);
     bool isLeftActive() const;
     void setLeftActive(bool value);
+    bool isRightActive() const;
+    void setRightActive(bool value);
     void setBackgroundColor(const sf::Color& color);
     virtual void setWidth(float width);
     virtual void setPosition(const sf::Vector2f& pos);

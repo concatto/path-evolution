@@ -59,6 +59,16 @@ void BinarySelector::setLeftActive(bool value)
     leftActive = value;
 }
 
+bool BinarySelector::isRightActive() const
+{
+    return !isLeftActive();
+}
+
+void BinarySelector::setRightActive(bool value)
+{
+    setLeftActive(!value);
+}
+
 void BinarySelector::setPosition(const sf::Vector2f& pos)
 {
     sf::FloatRect leftBounds = left.getLocalBounds();

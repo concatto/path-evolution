@@ -22,7 +22,14 @@ private:
     std::vector<SelectorConfig> objectiveData;
     sf::RectangleShape pane;
     WeightedBinarySelector collisionSelector;
+    WeightedBinarySelector distanceSelector;
+    WeightedBinarySelector arcLengthSelector;
     BinarySelector automaticDestinationSelector;
+    BinarySelector stopSelector;
+
+    sf::Sprite carSprite;
+    sf::Image scenarioImage;
+    std::vector<sf::FloatRect> obstacles;
 
     sf::Texture destinationTex;
     sf::Texture startTex;
@@ -36,7 +43,7 @@ private:
     int generation;
 
     bool checkPixelCollisions(const sf::Image &a, const sf::Image &b, sf::FloatRect bounds);
-    bool isEmpty(const sf::Image &image, sf::FloatRect rect);
+    bool isEmpty(const sf::Image &image, sf::FloatRect rect) const;
 
     sf::Texture colorizeTexture(const sf::Texture &tex, sf::Color color);
     sf::Texture constructScenario();
@@ -47,6 +54,7 @@ private:
     void displayTrajectories(const DifferentialEvolver &evolver, const sf::Sprite &scenario);
     bool isInStage(const sf::Vector2f& point);
     void drawPane();
+    bool carCollides() const;
 public:
     Window(int width, int height);
 

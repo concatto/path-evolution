@@ -28,7 +28,7 @@ void DifferentialEvolver::initialize(unsigned int popSize, unsigned int dimensio
 
         std::cout << ind.back() << "\n";
         population.push_back(ind);
-        fitnesses.push_back(0);
+        fitnesses.push_back(std::numeric_limits<double>::max() * -1);
     }
 }
 

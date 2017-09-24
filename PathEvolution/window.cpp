@@ -32,8 +32,11 @@ Window::Window(int width, int height) :
     std::cout << std::get<0>(data) << "\n";
 
     objectiveData.insert(objectiveData.end(), {
-        {&collisionSelector, {L"Colisões", L"Minimizar", L"Maximizar"}},
         {&automaticDestinationSelector, {L"Destino automático", L"Desativar", L"Ativar"}},
+        {&stopSelector, {L"Parar ao colidir", L"Desativar", L"Ativar"}},
+        {&collisionSelector, {L"Colisões", L"Minimizar", L"Maximizar"}},
+        {&distanceSelector, {L"Distância ao objetivo", L"Minimizar", L"Maximizar"}},
+        {&arcLengthSelector, {L"Caminho percorrido", L"Minimizar", L"Maximizar"}},
     });
 
     for (const SelectorConfig& config : objectiveData) {
@@ -141,7 +144,7 @@ bool Window::isInStage(const sf::Vector2f& point) {
     return point.x < stageSize.x;
 }
 
-bool Window::isEmpty(const sf::Image& image, sf::FloatRect rect) {
+bool Window::isEmpty(const sf::Image& image, sf::FloatRect rect) const {
     for (unsigned int x = rect.left; x <= std::ceil(rect.left + rect.width); x++) {
         for (unsigned int y = rect.top; y <= std::ceil(rect.top + rect.height); y++) {
             sf::Color color = image.getPixel(x, y);
@@ -197,11 +200,27 @@ sf::VertexArray Window::constructBezierCurve(const std::vector<Point2D>& points,
 {
     sf::VertexArray va(sf::PrimitiveType::LinesStrip);
 
+    sf::Vector2f oldPos;
     for (double t = 0; t < (1 + step); t += step) {
-        Point2D pos = Util::bezierCurve(t, points);
-        sf::Vertex vertex(sf::Vector2f(pos.first * stageSize.x, pos.second * stageSize.y), color);
+        Point2D point = Util::bezierCurve(t, points);
+        sf::Vector2f pos(point.first * stageSize.x, point.second * stageSize.y);
+        sf::Vertex vertex(pos, color);
 
         va.append(vertex);
+
+        if (t > 0) {
+            sf::Vector2f delta = pos - oldPos;
+            float angle = std::atan2(delta.y, delta.x);
+
+            carSprite.setPosition(pos);
+            carSprite.setRotation(Util::toDegrees(angle) - 90);
+
+            if (carCollides() && stopSelector.isRightActive()) {
+                break;
+            }
+        }
+
+        oldPos = pos;
     }
 
     return va;
@@ -252,7 +271,7 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
 
         int alpha = std::floor((ind.second / maxFitness) * 255.0);
         std::vector<Point2D> points = Util::toPoints2D(ind.first);
-        trajectories.push_back(constructBezierCurve(points, 0.005, sf::Color(255, 0, 0, alpha)));
+        trajectories.push_back(constructBezierCurve(points, 0.005, sf::Color(255, 0, 0, 255)));
     }
 
     sf::RenderTexture buffer1;
@@ -309,13 +328,10 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
 void Window::drawPane()
 {
     draw(pane);
-    std::vector<BinarySelector*> selectors{
-        &collisionSelector, &automaticDestinationSelector
-    };
 
     float heightSum = 0;
-    for (int i = 0; i < selectors.size(); i++) {
-        BinarySelector* selector = selectors[i];
+    for (int i = 0; i < objectiveData.size(); i++) {
+        BinarySelector* selector = objectiveData[i].first;
 
         selector->setPosition(sf::Vector2f(stageSize.x, heightSum));
         heightSum += selector->getBackground().getSize().y;
@@ -329,14 +345,14 @@ void Window::loop()
     float speed = 1;
 
     sf::Texture scenarioTexture(constructScenario());
-    sf::Image scenarioImage = scenarioTexture.copyToImage();
     sf::Sprite scenario(scenarioTexture);
+    scenarioImage = scenarioTexture.copyToImage();
 
-    std::vector<sf::FloatRect> rects = coverScenario(scenarioImage, 10);
+    obstacles = coverScenario(scenarioImage, 10);
     std::vector<sf::RectangleShape> rectShapes;
-    rectShapes.reserve(rects.size());
+    rectShapes.reserve(obstacles.size());
 
-    std::transform(rects.begin(), rects.end(), std::back_inserter(rectShapes), [&](const sf::FloatRect& r) {
+    std::transform(obstacles.begin(), obstacles.end(), std::back_inserter(rectShapes), [&](const sf::FloatRect& r) {
         sf::RectangleShape shape(sf::Vector2f(r.width, r.height));
         shape.setPosition(r.left, r.top);
         shape.setOutlineThickness(1);
@@ -361,9 +377,9 @@ void Window::loop()
 
     sf::Texture whiteTex = colorizeTexture(carTex, sf::Color::White);
 
-    sf::Sprite sprite(whiteTex);
-    Util::centralizeOrigin(sprite, carTex.getSize());
-    sprite.setScale(0.5, 0.5);
+    carSprite.setTexture(whiteTex);
+    Util::centralizeOrigin(carSprite, carTex.getSize());
+    carSprite.setScale(0.2, 0.2);
 
     sf::Clock clock;
 
@@ -372,24 +388,24 @@ void Window::loop()
 
 
     evolver.setObjectiveFunction([&](const DifferentialEvolver::Individual& ind) {
-        sprite.setTexture(carTex);
+        carSprite.setTexture(carTex);
         std::vector<Point2D> points = Util::toPoints2D(ind);
 
-        bool collided = false;
         double collisions = 0;
 
         sf::Vector2f oldPos;
-        sprite.setPosition(points[0].first, points[0].second);
+        carSprite.setPosition(points[0].first, points[0].second);
 
         double arcLength = 0;
         double distanceSum = 0;
         int steps = 0;
 
-        for (double t = 0; t <= 1; t += 0.005) {
+        double interval = 0.005;
+        for (double t = 0; t <= 1; t += interval) {
             Point2D point = Util::bezierCurve(t, points);
             sf::Vector2f pos(point.first * stageSize.x, point.second * stageSize.y);
 
-            if (t != 0 && !collided) {
+            if (t != 0) {
                 sf::Vector2f delta = pos - oldPos;
                 sf::Vector2f deltaDestination = pos - destination.getPosition();
 
@@ -397,32 +413,30 @@ void Window::loop()
                 distanceSum += std::hypot(deltaDestination.x / stageSize.x, deltaDestination.y / stageSize.y);
                 float angle = std::atan2(delta.y, delta.x);
 
-                sprite.setPosition(pos);
-                sprite.setRotation(Util::toDegrees(angle) - 90);
+                carSprite.setPosition(pos);
+                carSprite.setRotation(Util::toDegrees(angle) - 90);
 
-                for (const sf::FloatRect& rect : rects) {
-                    sf::FloatRect intersection;
-                    if (limit < 0 && rect.intersects(sprite.getGlobalBounds(), intersection)) {
-                        if (!isEmpty(scenarioImage, intersection)) {
-                            collisions++;
-                        }
-                    }
+                if (carCollides()) {
+                    collisions++;
                 }
             }
 
             steps++;
-            if (collisions > 0) {
-//                break;
+            if (collisions > 0 && stopSelector.isRightActive()) {
+                break;
             }
 
             oldPos = pos;
         }
 
-        sf::Vector2f delta = destination.getPosition() - sprite.getPosition();
+        sf::Vector2f delta = destination.getPosition() - carSprite.getPosition();
 
-        sprite.setTexture(carTex);
+        //IMPORTANT: check weight scaling when collide-stopping
+        collisions = collisions * interval * collisionSelector.getWeight();
+
+        carSprite.setTexture(carTex);
         if (collisionSelector.isLeftActive()) {
-            collisions = 1 / (collisions + 1E-3); //verificar
+            collisions *= -1;
         }
 
         return collisions;
@@ -458,7 +472,7 @@ void Window::loop()
 
     sf::Event event;
 
-    sprite.setPosition(va[k].position);
+    carSprite.setPosition(va[k].position);
 
     while (isOpen()) {
         while (pollEvent(event)) {
@@ -478,12 +492,12 @@ void Window::loop()
         }
 
         float angle = std::atan2(vec.y, vec.x);
-        sprite.setPosition(va[k].position.x, va[k].position.y);
-        sprite.setRotation(Util::toDegrees(angle) - 90);
+        carSprite.setPosition(va[k].position.x, va[k].position.y);
+        carSprite.setRotation(Util::toDegrees(angle) - 90);
 
-        draw(sprite);
+        draw(carSprite);
 
-        sf::FloatRect rect = sprite.getGlobalBounds();
+        sf::FloatRect rect = carSprite.getGlobalBounds();
         sf::RectangleShape bounds(sf::Vector2f(rect.width, rect.height));
         bounds.setPosition(rect.left, rect.top);
         bounds.setOutlineColor(sf::Color::Red);
@@ -502,6 +516,19 @@ void Window::loop()
 
         display();
     }
+}
+
+bool Window::carCollides() const
+{
+    for (const sf::FloatRect& rect : obstacles) {
+        sf::FloatRect intersection;
+        if (rect.intersects(carSprite.getGlobalBounds(), intersection)) {
+            if (!isEmpty(scenarioImage, intersection)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 bool Window::checkPixelCollisions(const sf::Image& a, const sf::Image& b, sf::FloatRect bounds)
