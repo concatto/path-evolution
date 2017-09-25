@@ -17,10 +17,10 @@ BinarySelector::BinarySelector()
         sf::Font* font = Util::getFont();
         text->setFont(*font);
         text->setFillColor(sf::Color::Black);
-        text->setCharacterSize(17);
+        text->setCharacterSize(14);
     }
 
-    title.setCharacterSize(23);
+    title.setCharacterSize(20);
 
     Util::centralizeOrigin(leftSprite, leftTexture.getSize());
     Util::centralizeOrigin(rightSprite, rightTexture.getSize());
@@ -46,7 +46,7 @@ void BinarySelector::setBackgroundColor(const sf::Color& color)
 
 void BinarySelector::setWidth(float width)
 {
-    background.setSize(sf::Vector2f(width, 100));
+    background.setSize(sf::Vector2f(width, 110));
 }
 
 bool BinarySelector::isLeftActive() const
@@ -93,7 +93,7 @@ void BinarySelector::setPosition(const sf::Vector2f& pos)
     left.move(0, -delta - verticalShift);
     right.move(0, -delta - verticalShift);
 
-    float margin = 10;
+    float margin = 12;
     title.setPosition(pos.x + margin, pos.y + margin);
 }
 

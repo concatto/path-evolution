@@ -1,5 +1,6 @@
 #include "window.h"
 #include <cmath>
+#include <utility>
 #include <iostream>
 #include <vector>
 #include <array>
@@ -27,9 +28,6 @@ Window::Window(int width, int height) :
     start.setTexture(startTex);
     start.setPosition(sf::Vector2f(stageSize.x / 2.0, height / 2.0));
     start.setScale(0.3, 0.3);
-
-    std::tuple<std::string, std::string, std::string> data{"a", "b", "c"};
-    std::cout << std::get<0>(data) << "\n";
 
     objectiveData.insert(objectiveData.end(), {
         {&automaticDestinationSelector, {L"Destino automático", L"Desativar", L"Ativar"}},
@@ -244,34 +242,60 @@ int Window::calculateNextPosition(int k, float speed, const sf::VertexArray& va)
 
 void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::Sprite& scenario)
 {
-    using EvaluatedIndividual = std::pair<DifferentialEvolver::Individual, double>;
-    std::vector<EvaluatedIndividual> pop;
     const std::vector<DifferentialEvolver::Individual>& originalPopulation = evolver.getPopulation();
 
-    double maxFitness = std::numeric_limits<double>::min();
-    for (unsigned int i = 0; i < originalPopulation.size(); i++) {
-        pop.push_back({originalPopulation[i], evolver.getFitness(i)});
+    int limit = 5;
 
-        if (pop.back().second > maxFitness) {
-            maxFitness = pop.back().second;
-        }
+    for (Trajectory& trajectory : trajectories) {
+        trajectory.remainingTime--;
     }
 
-    std::sort(pop.begin(), pop.end(), [&](const EvaluatedIndividual& a, const EvaluatedIndividual& b) {
-        return a.second < b.second;
+    for (unsigned int i = 0; i < originalPopulation.size(); i++) {
+//        if (generation > limit) {
+//            trajectories.pop_front();
+//        }
+
+        std::vector<Point2D> points = Util::toPoints2D(originalPopulation[i]);
+        sf::VertexArray va = constructBezierCurve(points, 0.005, sf::Color(255, 0, 0, 255));
+        trajectories.push_back({va, evolver.getFitness(i), limit});
+    }
+
+    auto minmax = std::minmax_element(trajectories.begin(), trajectories.end(), [&](const Trajectory& a, const Trajectory& b) {
+        return a.fitness < b.fitness;
     });
 
-    sf::Font font;
-//    font.loadFromFile("arial.ttf");
+    double minFitness = minmax.first->fitness;
+    double maxFitness = minmax.second->fitness;
 
-    for (const EvaluatedIndividual& ind : pop) {
-        if (generation >= 5) {
-            trajectories.pop_front();
+    std::cout << "Min: " << minFitness << "; Max: " << maxFitness << "\n";
+
+    double sum = 0;
+    bool fw = false, fb = false;
+    for (Trajectory& trajectory : trajectories) {
+        double normalized = (trajectory.fitness - minFitness) / (maxFitness - minFitness);
+
+        if (minFitness == maxFitness) {
+            normalized = 1;
         }
 
-        int alpha = std::floor((ind.second / maxFitness) * 255.0);
-        std::vector<Point2D> points = Util::toPoints2D(ind.first);
-        trajectories.push_back(constructBezierCurve(points, 0.005, sf::Color(255, 0, 0, 255)));
+        if (trajectory.fitness == minFitness && !fw) {
+            std::cout << "Worst: " << normalized << "\n";
+            fw = true;
+        }
+
+        if (trajectory.fitness == maxFitness && !fb) {
+            std::cout << "Best: " << normalized << "\n";
+            fb = true;
+        }
+
+        sf::VertexArray& va = trajectory.va;
+        sum += normalized;
+        for (int i = 0; i < va.getVertexCount(); i++) {
+            double scale = trajectory.remainingTime / static_cast<double>(limit);
+            scale = std::max(0.0, scale);
+            va[i].color = Util::fromHSV(normalized * scale * 360, 1, 1);
+            va[i].color.a = std::round(normalized * scale * 128) + 127;
+        }
     }
 
     sf::RenderTexture buffer1;
@@ -284,8 +308,8 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
     sf::RenderTexture buffer;
     buffer.create(stageSize.x, stageSize.y);
     buffer.clear(sf::Color::Transparent);
-    for (const sf::VertexArray& va : trajectories) {
-        buffer.draw(va);
+    for (const Trajectory& trajectory : trajectories) {
+        buffer.draw(trajectory.va);
     }
     buffer.display();
 
@@ -300,26 +324,26 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
 
     float potency = 0.7f;
 
-    int iter = 3;
-    for (int i = 0; i < iter; i++) {
-        float r = (iter - i - 1) * potency;
-        shader.setUniform("direction", sf::Vector2f(r, 0));
+//    int iter = 3;
+//    for (int i = 0; i < iter; i++) {
+//        float r = (iter - i - 1) * potency;
+//        shader.setUniform("direction", sf::Vector2f(r, 0));
 
-//        buffer1.clear(sf::Color::Transparent);
-        buffer1.draw(sf::Sprite(buffer2.getTexture()), sf::RenderStates(&shader));
-        buffer1.display();
+////        buffer1.clear(sf::Color::Transparent);
+//        buffer1.draw(sf::Sprite(buffer2.getTexture()), sf::RenderStates(&shader));
+//        buffer1.display();
 
-        shader.setUniform("direction", sf::Vector2f(0, r));
+//        shader.setUniform("direction", sf::Vector2f(0, r));
 
-//        buffer2.clear(sf::Color::Transparent);
-        buffer2.draw(sf::Sprite(buffer1.getTexture()), sf::RenderStates(&shader));
-        buffer2.display();
-    }
+////        buffer2.clear(sf::Color::Transparent);
+//        buffer2.draw(sf::Sprite(buffer1.getTexture()), sf::RenderStates(&shader));
+//        buffer2.display();
+//    }
 
     clear();
     draw(scenario);
     draw(sf::Sprite(buffer.getTexture()));
-    draw(sf::Sprite(buffer2.getTexture()));
+//    draw(sf::Sprite(buffer2.getTexture()));
     sf::sleep(sf::milliseconds(3));
     drawPane();
     display();
@@ -432,7 +456,7 @@ void Window::loop()
         sf::Vector2f delta = destination.getPosition() - carSprite.getPosition();
 
         //IMPORTANT: check weight scaling when collide-stopping
-        collisions = collisions * interval * collisionSelector.getWeight();
+//        collisions = collisions * interval * collisionSelector.getWeight();
 
         carSprite.setTexture(carTex);
         if (collisionSelector.isLeftActive()) {

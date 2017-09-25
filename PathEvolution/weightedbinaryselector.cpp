@@ -20,7 +20,7 @@ void WeightedBinarySelector::setPosition(const sf::Vector2f& pos)
 {
     BinarySelector::setPosition(pos);
 
-    float margin = 10;
+    float margin = 12;
     sf::Vector2f backgroundSize = getBackground().getSize();
     sf::Vector2f inputSize = input.getBackground().getSize();
 

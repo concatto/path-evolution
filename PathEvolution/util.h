@@ -45,6 +45,7 @@ public:
     static double toDegrees(double radians);
     static float calculateFontMiddle(const sf::Font* font, unsigned int characterSize);
     static std::string readEntireFile(const std::string& path);
+    static sf::Color fromHSV(float hue, float saturation, float value);
 };
 
 #endif // UTIL_H

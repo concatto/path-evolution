@@ -36,6 +36,66 @@ std::string Util::readEntireFile(const std::string& path) {
     return oss.str();
 }
 
+sf::Color Util::fromHSV(float hue, float saturation, float value)
+{
+    double hh, p, q, t, ff;
+    long i;
+    sf::Color out;
+
+    int v = std::round(value * 255);
+
+    if(saturation <= 0.0) {       // < is bogus, just shuts up warnings
+        out.r = v;
+        out.g = v;
+        out.b = v;
+        return out;
+    }
+    hh = hue;
+    if(hh >= 360.0) hh = 0.0;
+    hh /= 60.0;
+    i = (long)hh;
+    ff = hh - i;
+    p = std::round(255 * value * (1.0 - saturation));
+    q = std::round(255 * value * (1.0 - (saturation * ff)));
+    t = std::round(255 * value * (1.0 - (saturation * (1.0 - ff))));
+
+    switch(i) {
+    case 0:
+        out.r = v;
+        out.g = t;
+        out.b = p;
+        break;
+    case 1:
+        out.r = q;
+        out.g = v;
+        out.b = p;
+        break;
+    case 2:
+        out.r = p;
+        out.g = v;
+        out.b = t;
+        break;
+
+    case 3:
+        out.r = p;
+        out.g = q;
+        out.b = v;
+        break;
+    case 4:
+        out.r = t;
+        out.g = p;
+        out.b = v;
+        break;
+    case 5:
+    default:
+        out.r = v;
+        out.g = p;
+        out.b = q;
+        break;
+    }
+    return out;
+}
+
 float Util::calculateFontMiddle(const sf::Font* font, unsigned int characterSize) {
     const sf::Glyph& upper = font->getGlyph('O', characterSize, false);
 

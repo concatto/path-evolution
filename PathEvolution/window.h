@@ -9,6 +9,15 @@
 #include "weightedbinaryselector.h"
 #include "binaryselector.h"
 
+struct Trajectory {
+    sf::VertexArray va;
+    double fitness;
+    int remainingTime;
+
+    Trajectory(const sf::VertexArray& va, double fitness, int remainingTime) :
+        va(va), fitness(fitness), remainingTime(remainingTime) {}
+};
+
 class Window : public sf::RenderWindow
 {
 private:
@@ -37,7 +46,7 @@ private:
     sf::Sprite destination;
     sf::Sprite start;
 
-    std::deque<sf::VertexArray> trajectories;
+    std::deque<Trajectory> trajectories;
     sf::Shader shader;
 
     int generation;
