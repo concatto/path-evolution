@@ -250,6 +250,10 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
         trajectory.remainingTime--;
     }
 
+    while (trajectories.front().remainingTime == 0) {
+        trajectories.pop_front();
+    }
+
     for (unsigned int i = 0; i < originalPopulation.size(); i++) {
 //        if (generation > limit) {
 //            trajectories.pop_front();
@@ -257,7 +261,7 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
 
         std::vector<Point2D> points = Util::toPoints2D(originalPopulation[i]);
         sf::VertexArray va = constructBezierCurve(points, 0.005, sf::Color(255, 0, 0, 255));
-        trajectories.push_back({va, evolver.getFitness(i), limit});
+        trajectories.emplace_back(va, evolver.getFitness(i), limit);
     }
 
     auto minmax = std::minmax_element(trajectories.begin(), trajectories.end(), [&](const Trajectory& a, const Trajectory& b) {
@@ -293,8 +297,8 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
         for (int i = 0; i < va.getVertexCount(); i++) {
             double scale = trajectory.remainingTime / static_cast<double>(limit);
             scale = std::max(0.0, scale);
-            va[i].color = Util::fromHSV(normalized * scale * 360, 1, 1);
-            va[i].color.a = std::round(normalized * scale * 128) + 127;
+            va[i].color = Util::fromHSV(normalized * 300 - 180, 1, 1);
+            va[i].color.a = std::round(normalized * scale * 255);
         }
     }
 
@@ -347,6 +351,10 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
     sf::sleep(sf::milliseconds(3));
     drawPane();
     display();
+
+    if (generation % 50 == 0) {
+        std::cout << "Breaking\n";
+    }
 }
 
 void Window::drawPane()

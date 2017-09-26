@@ -24,7 +24,7 @@ private:
     using SelectorConfig = std::pair<BinarySelector*, std::array<std::wstring, 3>>;
 
     static const sf::Color paneColor;
-    float paneWidth = 300;
+    float paneWidth = 350;
     sf::Vector2f stageSize;
     std::vector<sf::VertexArray> arrays;
 
