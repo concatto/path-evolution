@@ -46,6 +46,13 @@ public:
     static float calculateFontMiddle(const sf::Font* font, unsigned int characterSize);
     static std::string readEntireFile(const std::string& path);
     static sf::Color fromHSV(float hue, float saturation, float value);
+
+    template <class T>
+    static sf::Vector2<T> getCenter(const sf::Rect<T>& rect) {
+        T x = rect.left + (rect.width / 2);
+        T y = rect.top + (rect.height / 2);
+        return sf::Vector2<T>(x, y);
+    }
 };
 
 #endif // UTIL_H

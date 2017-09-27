@@ -12,7 +12,7 @@ NumericInput::NumericInput()
     text.setString(textualValue);
     text.setFont(*Util::getFont());
     text.setFillColor(sf::Color::Black);
-    text.setCharacterSize(20);
+    text.setCharacterSize(16);
     text.setOrigin(0, 0);
 
     bounds.setFillColor(sf::Color::Transparent);
@@ -89,7 +89,7 @@ void NumericInput::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
     target.draw(background);
     target.draw(text);
-    target.draw(bounds);
+//    target.draw(bounds);
 }
 
 void NumericInput::setPosition(const sf::Vector2f& pos)

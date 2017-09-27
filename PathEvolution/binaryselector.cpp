@@ -94,7 +94,8 @@ void BinarySelector::setPosition(const sf::Vector2f& pos)
     right.move(0, -delta - verticalShift);
 
     float margin = 12;
-    title.setPosition(pos.x + margin, pos.y + margin);
+    title.setPosition(pos.x + margin, pos.y);
+    title.move(0, pos.y - title.getGlobalBounds().top + margin);
 }
 
 void BinarySelector::processEvent(const sf::Event& event)

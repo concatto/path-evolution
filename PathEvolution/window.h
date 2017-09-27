@@ -8,6 +8,7 @@
 #include "differentialevolver.h"
 #include "weightedbinaryselector.h"
 #include "binaryselector.h"
+#include "button.h"
 
 struct Trajectory {
     sf::VertexArray va;
@@ -35,6 +36,11 @@ private:
     WeightedBinarySelector arcLengthSelector;
     BinarySelector automaticDestinationSelector;
     BinarySelector stopSelector;
+
+    sf::Texture startTexture;
+    Button startButton;
+    sf::Texture stopTexture;
+    Button stopButton;
 
     sf::Sprite carSprite;
     sf::Image scenarioImage;

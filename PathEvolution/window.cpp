@@ -15,6 +15,17 @@ Window::Window(int width, int height) :
     setFramerateLimit(60);
     arrays.push_back(sf::VertexArray(sf::LinesStrip));
 
+    stopTexture.loadFromFile("stop.png");
+    startTexture.loadFromFile("play.png");
+
+    stopButton.setTexture(&stopTexture);
+    startButton.setTexture(&startTexture);
+
+    stopButton.setSize(sf::Vector2f(50, 50));
+    startButton.setSize(sf::Vector2f(50, 50));
+
+    stopButton.setDisabled(true);
+
     destinationTex.loadFromFile("flag.png");
     startTex.loadFromFile("start.png");
 
@@ -94,6 +105,16 @@ sf::Texture Window::constructScenario()
 
             for (const SelectorConfig& config : objectiveData) {
                 config.first->processEvent(event);
+            }
+
+            if (startButton.processEvent(event)) {
+                ended = true;
+                startButton.setDisabled(true);
+                stopButton.setDisabled(false);
+            }
+
+            if (stopButton.processEvent(event)) {
+
             }
         }
 
@@ -361,8 +382,25 @@ void Window::drawPane()
 {
     draw(pane);
 
-    float heightSum = 0;
+    float heightSum = 10;
+    float x = heightSum + stageSize.x;
+
+    startButton.setPosition(sf::Vector2f(x, heightSum));
+    stopButton.setPosition(sf::Vector2f(x + startButton.getSize().x + heightSum, heightSum));
+
+    draw(startButton);
+    draw(stopButton);
+
+    heightSum += startButton.getSize().y + heightSum;
+
     for (int i = 0; i < objectiveData.size(); i++) {
+        sf::RectangleShape rect(sf::Vector2f(paneWidth, 2));
+        rect.setFillColor(sf::Color(0x888888FF));
+        rect.setPosition(stageSize.x, heightSum);
+        heightSum += rect.getSize().y;
+
+        draw(rect);
+
         BinarySelector* selector = objectiveData[i].first;
 
         selector->setPosition(sf::Vector2f(stageSize.x, heightSum));
@@ -462,21 +500,27 @@ void Window::loop()
         }
 
         sf::Vector2f delta = destination.getPosition() - carSprite.getPosition();
+        float distance = std::hypot(delta.x / stageSize.x, delta.y / stageSize.y);
 
         //IMPORTANT: check weight scaling when collide-stopping
-//        collisions = collisions * interval * collisionSelector.getWeight();
+        collisions = collisions * collisionSelector.getWeight();
+        distance = distance * distanceSelector.getWeight();
+        arcLength = arcLength * arcLengthSelector.getWeight();
 
         carSprite.setTexture(carTex);
         if (collisionSelector.isLeftActive()) {
             collisions *= -1;
         }
 
-        return collisions;
-//        if (collisions > 0) {
-//            return 1 / ((collisions * 999) + (1 / arcLength) + (distanceSum / (steps * 0.75)));
-//        } else {
-//            return 1 / ((arcLength * 1) + (distanceSum * 1));
-//        }
+        if (arcLengthSelector.isLeftActive()) {
+            arcLength *= -1;
+        }
+
+        if (distanceSelector.isLeftActive()) {
+            distance *= -1;
+        }
+
+        return collisions + arcLength + distance;
     });
 
     for (generation = 0; generation < 400; generation++) {
@@ -492,7 +536,6 @@ void Window::loop()
         const sf::Vertex& vertex = va[i];
         std::cout << vertex.position.x << ", " << vertex.position.y << "\n";
     }
-
 
     if (limit < 0) {
         limit = va.getVertexCount() - 1;
