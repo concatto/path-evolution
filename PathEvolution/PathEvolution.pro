@@ -8,7 +8,7 @@ win32 {
     LIBS += -L"$$PWD/LabSFML/lib"
 }
 
-LIBS += -lsfml-graphics -lsfml-window -lsfml-system
+LIBS += -lsfml-graphics -lsfml-window -lsfml-system -lpthread
 
 SOURCES += main.cpp \
     window.cpp \
@@ -28,4 +28,4 @@ HEADERS += \
     weightedbinaryselector.h \
     button.h
 
-QMAKE_CXXFLAGS += -O3
+QMAKE_CXXFLAGS += -O3 -pthread

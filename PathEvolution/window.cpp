@@ -4,6 +4,8 @@
 #include <iostream>
 #include <vector>
 #include <array>
+#include <thread>
+#include <chrono>
 
 const sf::Color Window::paneColor = sf::Color(0xEBEBEBFF);
 
@@ -111,10 +113,6 @@ sf::Texture Window::constructScenario()
                 ended = true;
                 startButton.setDisabled(true);
                 stopButton.setDisabled(false);
-            }
-
-            if (stopButton.processEvent(event)) {
-
             }
         }
 
@@ -261,7 +259,7 @@ int Window::calculateNextPosition(int k, float speed, const sf::VertexArray& va)
     return nextK;
 }
 
-void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::Sprite& scenario)
+void Window::updateTrajectories(const DifferentialEvolver& evolver, const sf::Sprite& scenario)
 {
     const std::vector<DifferentialEvolver::Individual>& originalPopulation = evolver.getPopulation();
 
@@ -323,59 +321,59 @@ void Window::displayTrajectories(const DifferentialEvolver& evolver, const sf::S
         }
     }
 
-    sf::RenderTexture buffer1;
-    sf::RenderTexture buffer2;
-    buffer1.create(stageSize.x, stageSize.y);
-    buffer2.create(stageSize.x, stageSize.y);
+//    sf::RenderTexture buffer1;
+//    sf::RenderTexture buffer2;
+//    buffer1.create(stageSize.x, stageSize.y);
+//    buffer2.create(stageSize.x, stageSize.y);
 
-    buffer1.clear(sf::Color::Transparent);
+//    buffer1.clear(sf::Color::Transparent);
 
-    sf::RenderTexture buffer;
-    buffer.create(stageSize.x, stageSize.y);
-    buffer.clear(sf::Color::Transparent);
-    for (const Trajectory& trajectory : trajectories) {
-        buffer.draw(trajectory.va);
-    }
-    buffer.display();
-
-    buffer2.clear(sf::Color::Transparent);
-    buffer2.draw(sf::Sprite(buffer.getTexture()));
-    buffer2.display();
-
-//    float coef = 0.1666f;
-//    float potency = coef * std::sin(generation * 0.05f * 6.2831853f) + coef;
-//    potency += 0.1f;
-//    std::cout << potency << "\n";
-
-    float potency = 0.7f;
-
-//    int iter = 3;
-//    for (int i = 0; i < iter; i++) {
-//        float r = (iter - i - 1) * potency;
-//        shader.setUniform("direction", sf::Vector2f(r, 0));
-
-////        buffer1.clear(sf::Color::Transparent);
-//        buffer1.draw(sf::Sprite(buffer2.getTexture()), sf::RenderStates(&shader));
-//        buffer1.display();
-
-//        shader.setUniform("direction", sf::Vector2f(0, r));
-
-////        buffer2.clear(sf::Color::Transparent);
-//        buffer2.draw(sf::Sprite(buffer1.getTexture()), sf::RenderStates(&shader));
-//        buffer2.display();
+//    sf::RenderTexture buffer;
+//    buffer.create(stageSize.x, stageSize.y);
+//    buffer.clear(sf::Color::Transparent);
+//    for (const Trajectory& trajectory : trajectories) {
+//        buffer.draw(trajectory.va);
 //    }
+//    buffer.display();
 
-    clear();
-    draw(scenario);
-    draw(sf::Sprite(buffer.getTexture()));
-//    draw(sf::Sprite(buffer2.getTexture()));
-    sf::sleep(sf::milliseconds(3));
-    drawPane();
-    display();
+//    buffer2.clear(sf::Color::Transparent);
+//    buffer2.draw(sf::Sprite(buffer.getTexture()));
+//    buffer2.display();
 
-    if (generation % 50 == 0) {
-        std::cout << "Breaking\n";
-    }
+////    float coef = 0.1666f;
+////    float potency = coef * std::sin(generation * 0.05f * 6.2831853f) + coef;
+////    potency += 0.1f;
+////    std::cout << potency << "\n";
+
+//    float potency = 0.7f;
+
+////    int iter = 3;
+////    for (int i = 0; i < iter; i++) {
+////        float r = (iter - i - 1) * potency;
+////        shader.setUniform("direction", sf::Vector2f(r, 0));
+
+//////        buffer1.clear(sf::Color::Transparent);
+////        buffer1.draw(sf::Sprite(buffer2.getTexture()), sf::RenderStates(&shader));
+////        buffer1.display();
+
+////        shader.setUniform("direction", sf::Vector2f(0, r));
+
+//////        buffer2.clear(sf::Color::Transparent);
+////        buffer2.draw(sf::Sprite(buffer1.getTexture()), sf::RenderStates(&shader));
+////        buffer2.display();
+////    }
+
+//    clear();
+//    draw(scenario);
+//    draw(sf::Sprite(buffer.getTexture()));
+////    draw(sf::Sprite(buffer2.getTexture()));
+//    sf::sleep(sf::milliseconds(3));
+//    drawPane();
+//    display();
+
+//    if (generation % 50 == 0) {
+//        std::cout << "Breaking\n";
+//    }
 }
 
 void Window::drawPane()
@@ -410,8 +408,9 @@ void Window::drawPane()
     }
 }
 
-void Window::loop()
+bool Window::loop()
 {
+    running = true;
     float speed = 1;
 
     sf::Texture scenarioTexture(constructScenario());
@@ -523,71 +522,91 @@ void Window::loop()
         return collisions + arcLength + distance;
     });
 
-    for (generation = 0; generation < 400; generation++) {
-        evolver.improve();
+//    sf::VertexArray va = constructBezierCurve(Util::toPoints2D(evolver.getBestIndividual()), 0.005, sf::Color::Red);
+//    for (unsigned int i = 0; i < va.getVertexCount(); i++) {
+//        const sf::Vertex& vertex = va[i];
+//        std::cout << vertex.position.x << ", " << vertex.position.y << "\n";
+//    }
 
-        displayTrajectories(evolver, scenario);
-    }
+//    if (limit < 0) {
+//        limit = va.getVertexCount() - 1;
+//    }
 
-    std::cout << clock.getElapsedTime().asMilliseconds() << "\n";
+//    unsigned int k = 1;
 
-    sf::VertexArray va = constructBezierCurve(Util::toPoints2D(evolver.getBestIndividual()), 0.005, sf::Color::Red);
-    for (unsigned int i = 0; i < va.getVertexCount(); i++) {
-        const sf::Vertex& vertex = va[i];
-        std::cout << vertex.position.x << ", " << vertex.position.y << "\n";
-    }
 
-    if (limit < 0) {
-        limit = va.getVertexCount() - 1;
-    }
+    std::thread evolverThread([&]() {
+        for (generation = 0; generation < 400 && running; generation++) {
+            evolver.improve();
 
-    unsigned int k = 1;
-
+            std::lock_guard<std::mutex> lock(mutex);
+            updateTrajectories(evolver, scenario);
+        }
+    });
 
 
     sf::Event event;
 
-    carSprite.setPosition(va[k].position);
+//    carSprite.setPosition(va[k].position);
 
-    while (isOpen()) {
+    while (isOpen() && running) {
         while (pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
                 close();
+                running = false;
+                evolverThread.join();
+                return false;
+            }
+
+            if (stopButton.processEvent(event)) {
+                running = false;
+                startButton.setDisabled(false);
+                stopButton.setDisabled(true);
+                evolverThread.join();
+                return true;
             }
         }
 
         clear();
 
-        int nextK = calculateNextPosition(k, speed, va);
-
-        sf::Vector2f vec = va[nextK].position - va[k].position;
-
-        if (k < limit) {
-            k = std::min(limit - 1, nextK);
-        }
-
-        float angle = std::atan2(vec.y, vec.x);
-        carSprite.setPosition(va[k].position.x, va[k].position.y);
-        carSprite.setRotation(Util::toDegrees(angle) - 90);
-
-        draw(carSprite);
-
-        sf::FloatRect rect = carSprite.getGlobalBounds();
-        sf::RectangleShape bounds(sf::Vector2f(rect.width, rect.height));
-        bounds.setPosition(rect.left, rect.top);
-        bounds.setOutlineColor(sf::Color::Red);
-        bounds.setFillColor(sf::Color::Transparent);
-        bounds.setOutlineThickness(2);
-
-        draw(bounds);
         draw(scenario);
-        draw(va);
-        draw(destination);
-        draw(start);
-
-        for (const sf::RectangleShape& shape : rectShapes) {
-            draw(shape);
+        std::lock_guard<std::mutex> lock(mutex);
+        for (const Trajectory& trajectory : trajectories) {
+            draw(trajectory.va);
         }
+
+        drawPane();
+
+//        int nextK = calculateNextPosition(k, speed, va);
+
+//        sf::Vector2f vec = va[nextK].position - va[k].position;
+
+//        if (k < limit) {
+//            k = std::min(limit - 1, nextK);
+//        }
+
+//        float angle = std::atan2(vec.y, vec.x);
+//        carSprite.setPosition(va[k].position.x, va[k].position.y);
+//        carSprite.setRotation(Util::toDegrees(angle) - 90);
+
+//        draw(carSprite);
+
+//        sf::FloatRect rect = carSprite.getGlobalBounds();
+//        sf::RectangleShape bounds(sf::Vector2f(rect.width, rect.height));
+//        bounds.setPosition(rect.left, rect.top);
+//        bounds.setOutlineColor(sf::Color::Red);
+//        bounds.setFillColor(sf::Color::Transparent);
+//        bounds.setOutlineThickness(2);
+
+//        draw(bounds);
+//        draw(scenario);
+//        draw(va);
+//        draw(destination);
+//        draw(start);
+
+//        for (const sf::RectangleShape& shape : rectShapes) {
+//            draw(shape);
+//        }
 
         display();
     }

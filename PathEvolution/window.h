@@ -10,6 +10,8 @@
 #include "binaryselector.h"
 #include "button.h"
 
+#include <mutex>
+
 struct Trajectory {
     sf::VertexArray va;
     double fitness;
@@ -23,6 +25,9 @@ class Window : public sf::RenderWindow
 {
 private:
     using SelectorConfig = std::pair<BinarySelector*, std::array<std::wstring, 3>>;
+
+    std::mutex mutex;
+    bool running;
 
     static const sf::Color paneColor;
     float paneWidth = 350;
@@ -66,14 +71,14 @@ private:
     sf::VertexArray constructBezierCurve(const std::vector<Point2D> &points, double step, sf::Color color);
 
     int calculateNextPosition(int k, float speed, const sf::VertexArray &va);
-    void displayTrajectories(const DifferentialEvolver &evolver, const sf::Sprite &scenario);
+    void updateTrajectories(const DifferentialEvolver &evolver, const sf::Sprite &scenario);
     bool isInStage(const sf::Vector2f& point);
     void drawPane();
     bool carCollides() const;
 public:
     Window(int width, int height);
 
-    void loop();
+    bool loop();
 };
 
 #endif // WINDOW_H

@@ -6,7 +6,9 @@ int main(int argc, char *argv[])
 {
     Window window(1024, 768);
 
-    window.loop();
+    while (window.loop()) {
+
+    }
 
     return 0;
 }
