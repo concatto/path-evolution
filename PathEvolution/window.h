@@ -34,6 +34,8 @@ private:
     sf::Vector2f stageSize;
     std::vector<sf::VertexArray> arrays;
 
+    sf::RenderTexture scenarioTexture;
+
     std::vector<SelectorConfig> objectiveData;
     sf::RectangleShape pane;
     WeightedBinarySelector collisionSelector;
@@ -43,9 +45,11 @@ private:
     BinarySelector stopSelector;
 
     sf::Texture startTexture;
-    Button startButton;
     sf::Texture stopTexture;
+    sf::Texture clearTexture;
+    Button startButton;
     Button stopButton;
+    Button clearButton;
 
     sf::Sprite carSprite;
     sf::Image scenarioImage;
@@ -58,6 +62,10 @@ private:
     sf::Sprite start;
 
     std::deque<Trajectory> trajectories;
+    sf::RenderTexture offscreenStage;
+    sf::RenderTexture stageBuffer;
+    bool dataAvailable = false;
+
     sf::Shader shader;
 
     int generation;
@@ -75,6 +83,7 @@ private:
     bool isInStage(const sf::Vector2f& point);
     void drawPane();
     bool carCollides() const;
+    void drawBorder(sf::RenderTexture &texture);
 public:
     Window(int width, int height);
 

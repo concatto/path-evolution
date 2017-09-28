@@ -19,12 +19,15 @@ Window::Window(int width, int height) :
 
     stopTexture.loadFromFile("stop.png");
     startTexture.loadFromFile("play.png");
+    clearTexture.loadFromFile("replay.png");
 
     stopButton.setTexture(&stopTexture);
     startButton.setTexture(&startTexture);
+    clearButton.setTexture(&clearTexture);
 
     stopButton.setSize(sf::Vector2f(50, 50));
     startButton.setSize(sf::Vector2f(50, 50));
+    clearButton.setSize(sf::Vector2f(50, 50));
 
     stopButton.setDisabled(true);
 
@@ -62,17 +65,20 @@ Window::Window(int width, int height) :
     pane.setFillColor(paneColor);
     pane.setPosition(stageSize.x, 0);
 
+    stageBuffer.create(stageSize.x, stageSize.y);
+    offscreenStage.create(stageSize.x, stageSize.y);
+
+    scenarioTexture.create(stageSize.x, stageSize.y);
+    scenarioTexture.clear(sf::Color::Transparent);
+    drawBorder(scenarioTexture);
+
     shader.loadFromMemory(Util::readEntireFile("light.frag"), sf::Shader::Fragment);
     shader.setUniform("texture", sf::Shader::CurrentTexture);
     shader.setUniform("resolution", stageSize);
 }
 
-sf::Texture Window::constructScenario()
+void Window::drawBorder(sf::RenderTexture& texture)
 {
-    sf::RenderTexture scenarioTexture;
-    scenarioTexture.create(stageSize.x, stageSize.y);
-    scenarioTexture.clear(sf::Color::Transparent);
-
     sf::RectangleShape border(sf::Vector2f(stageSize) - sf::Vector2f(10, 10));
     Util::centralizeOrigin(border);
     border.setPosition(stageSize.x / 2.0, stageSize.y / 2.0);
@@ -80,8 +86,11 @@ sf::Texture Window::constructScenario()
     border.setOutlineThickness(10);
     border.setFillColor(sf::Color::Transparent);
 
-    scenarioTexture.draw(border);
+    texture.draw(border);
+}
 
+sf::Texture Window::constructScenario()
+{
     sf::Event event;
     sf::Vector2f oldPosition;
     bool isLeftPressed = false;
@@ -113,6 +122,15 @@ sf::Texture Window::constructScenario()
                 ended = true;
                 startButton.setDisabled(true);
                 stopButton.setDisabled(false);
+                clearButton.setDisabled(true);
+
+                sf::Texture tex(scenarioTexture.getTexture());
+                return tex;
+            }
+
+            if (clearButton.processEvent(event)) {
+                scenarioTexture.clear(sf::Color::Transparent);
+                drawBorder(scenarioTexture);
             }
         }
 
@@ -153,7 +171,7 @@ sf::Texture Window::constructScenario()
         display();
     }
 
-    sf::Texture tex(scenarioTexture.getTexture());
+    sf::Texture tex;
     return tex;
 }
 
@@ -274,10 +292,6 @@ void Window::updateTrajectories(const DifferentialEvolver& evolver, const sf::Sp
     }
 
     for (unsigned int i = 0; i < originalPopulation.size(); i++) {
-//        if (generation > limit) {
-//            trajectories.pop_front();
-//        }
-
         std::vector<Point2D> points = Util::toPoints2D(originalPopulation[i]);
         sf::VertexArray va = constructBezierCurve(points, 0.005, sf::Color(255, 0, 0, 255));
         trajectories.emplace_back(va, evolver.getFitness(i), limit);
@@ -290,35 +304,31 @@ void Window::updateTrajectories(const DifferentialEvolver& evolver, const sf::Sp
     double minFitness = minmax.first->fitness;
     double maxFitness = minmax.second->fitness;
 
-    std::cout << "Min: " << minFitness << "; Max: " << maxFitness << "\n";
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        offscreenStage.clear(sf::Color::Transparent);
+        offscreenStage.draw(scenario);
 
-    double sum = 0;
-    bool fw = false, fb = false;
-    for (Trajectory& trajectory : trajectories) {
-        double normalized = (trajectory.fitness - minFitness) / (maxFitness - minFitness);
+        for (Trajectory& trajectory : trajectories) {
+            double normalized = (trajectory.fitness - minFitness) / (maxFitness - minFitness);
 
-        if (minFitness == maxFitness) {
-            normalized = 1;
+            if (minFitness == maxFitness) {
+                normalized = 1;
+            }
+
+            sf::VertexArray& va = trajectory.va;
+            for (int i = 0; i < va.getVertexCount(); i++) {
+                double scale = trajectory.remainingTime / static_cast<double>(limit);
+                scale = std::max(0.0, scale);
+                va[i].color = Util::fromHSV(normalized * 300 - 180, 1, 1);
+                va[i].color.a = std::round(normalized * scale * 255);
+            }
+
+            offscreenStage.draw(va);
         }
 
-        if (trajectory.fitness == minFitness && !fw) {
-            std::cout << "Worst: " << normalized << "\n";
-            fw = true;
-        }
-
-        if (trajectory.fitness == maxFitness && !fb) {
-            std::cout << "Best: " << normalized << "\n";
-            fb = true;
-        }
-
-        sf::VertexArray& va = trajectory.va;
-        sum += normalized;
-        for (int i = 0; i < va.getVertexCount(); i++) {
-            double scale = trajectory.remainingTime / static_cast<double>(limit);
-            scale = std::max(0.0, scale);
-            va[i].color = Util::fromHSV(normalized * 300 - 180, 1, 1);
-            va[i].color.a = std::round(normalized * scale * 255);
-        }
+        offscreenStage.display();
+        dataAvailable = true;
     }
 
 //    sf::RenderTexture buffer1;
@@ -384,10 +394,14 @@ void Window::drawPane()
     float x = heightSum + stageSize.x;
 
     startButton.setPosition(sf::Vector2f(x, heightSum));
-    stopButton.setPosition(sf::Vector2f(x + startButton.getSize().x + heightSum, heightSum));
+    x += startButton.getSize().x + heightSum;
+    stopButton.setPosition(sf::Vector2f(x, heightSum));
+    x += stopButton.getSize().x + heightSum;
+    clearButton.setPosition(sf::Vector2f(x, heightSum));
 
     draw(startButton);
     draw(stopButton);
+    draw(clearButton);
 
     heightSum += startButton.getSize().y + heightSum;
 
@@ -449,12 +463,6 @@ bool Window::loop()
     carSprite.setTexture(whiteTex);
     Util::centralizeOrigin(carSprite, carTex.getSize());
     carSprite.setScale(0.2, 0.2);
-
-    sf::Clock clock;
-
-    int limit = -1;
-    int step = 0;
-
 
     evolver.setObjectiveFunction([&](const DifferentialEvolver::Individual& ind) {
         carSprite.setTexture(carTex);
@@ -522,24 +530,12 @@ bool Window::loop()
         return collisions + arcLength + distance;
     });
 
-//    sf::VertexArray va = constructBezierCurve(Util::toPoints2D(evolver.getBestIndividual()), 0.005, sf::Color::Red);
-//    for (unsigned int i = 0; i < va.getVertexCount(); i++) {
-//        const sf::Vertex& vertex = va[i];
-//        std::cout << vertex.position.x << ", " << vertex.position.y << "\n";
-//    }
-
-//    if (limit < 0) {
-//        limit = va.getVertexCount() - 1;
-//    }
-
-//    unsigned int k = 1;
-
+    trajectories.clear();
 
     std::thread evolverThread([&]() {
         for (generation = 0; generation < 400 && running; generation++) {
             evolver.improve();
 
-            std::lock_guard<std::mutex> lock(mutex);
             updateTrajectories(evolver, scenario);
         }
     });
@@ -548,6 +544,12 @@ bool Window::loop()
     sf::Event event;
 
 //    carSprite.setPosition(va[k].position);
+
+    stageBuffer.clear(sf::Color::Transparent);
+    stageBuffer.draw(scenario);
+    stageBuffer.display();
+
+    dataAvailable = false;
 
     while (isOpen() && running) {
         while (pollEvent(event)) {
@@ -562,6 +564,7 @@ bool Window::loop()
                 running = false;
                 startButton.setDisabled(false);
                 stopButton.setDisabled(true);
+                clearButton.setDisabled(false);
                 evolverThread.join();
                 return true;
             }
@@ -569,12 +572,18 @@ bool Window::loop()
 
         clear();
 
-        draw(scenario);
-        std::lock_guard<std::mutex> lock(mutex);
-        for (const Trajectory& trajectory : trajectories) {
-            draw(trajectory.va);
+        draw(sf::Sprite(stageBuffer.getTexture()));
+
+        if (dataAvailable) {
+            std::lock_guard<std::mutex> lock(mutex);
+            stageBuffer.clear(sf::Color::Transparent);
+            stageBuffer.draw(sf::Sprite(offscreenStage.getTexture()));
+            stageBuffer.display();
+            dataAvailable = false;
         }
 
+        draw(start);
+        draw(destination);
         drawPane();
 
 //        int nextK = calculateNextPosition(k, speed, va);
