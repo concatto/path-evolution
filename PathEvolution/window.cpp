@@ -17,6 +17,11 @@ Window::Window(int width, int height) :
     setFramerateLimit(60);
     arrays.push_back(sf::VertexArray(sf::LinesStrip));
 
+    backgroundTexture.loadFromFile("matrix.jpg");
+    backgroundSprite.setTexture(backgroundTexture);
+    backgroundSprite.setColor(sf::Color(0xFFFFFF50));
+    backgroundSprite.scale(0.7, 0.7);
+
     stopTexture.loadFromFile("stop.png");
     startTexture.loadFromFile("play.png");
     clearTexture.loadFromFile("replay.png");
@@ -34,8 +39,8 @@ Window::Window(int width, int height) :
     destinationTex.loadFromFile("flag.png");
     startTex.loadFromFile("start.png");
 
-    Util::centralizeOrigin(destination, destinationTex.getSize());
-    Util::centralizeOrigin(start, startTex.getSize());
+    destination.setOrigin(destinationTex.getSize().x / 2, destinationTex.getSize().y);
+    start.setOrigin(startTex.getSize().x / 2, startTex.getSize().y);
 
     destination.setTexture(destinationTex);
     destination.setPosition(sf::Vector2f(stageSize.x / 2.0, height / 2.0));
@@ -164,6 +169,7 @@ sf::Texture Window::constructScenario()
         scenarioTexture.display();
 
         clear();
+        draw(backgroundSprite);
         draw(destination);
         draw(start);
         draw(sf::Sprite(scenarioTexture.getTexture()));
@@ -450,7 +456,7 @@ bool Window::loop()
     };
 
     DifferentialEvolver evolver(0.7, 0.05);
-    evolver.initialize(50, 30, -0.5, 1.5,
+    evolver.initialize(50, 30, -0.6, 1.6,
         {start.getPosition().x / stageSize.x, start.getPosition().y / stageSize.y},
         (automaticDestinationSelector.isLeftActive() ? std::vector<double>() : suffix)
     );
@@ -572,6 +578,7 @@ bool Window::loop()
 
         clear();
 
+        draw(backgroundSprite);
         draw(sf::Sprite(stageBuffer.getTexture()));
 
         if (dataAvailable) {

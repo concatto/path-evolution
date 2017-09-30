@@ -44,6 +44,9 @@ private:
     BinarySelector automaticDestinationSelector;
     BinarySelector stopSelector;
 
+    sf::Texture backgroundTexture;
+    sf::Sprite backgroundSprite;
+
     sf::Texture startTexture;
     sf::Texture stopTexture;
     sf::Texture clearTexture;
