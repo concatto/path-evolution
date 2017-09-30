@@ -47,6 +47,9 @@ private:
     sf::Texture backgroundTexture;
     sf::Sprite backgroundSprite;
 
+    sf::Texture obstacleTexture;
+    sf::Sprite obstacleSprite;
+
     sf::Texture startTexture;
     sf::Texture stopTexture;
     sf::Texture clearTexture;

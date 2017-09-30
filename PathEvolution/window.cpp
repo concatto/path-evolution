@@ -22,6 +22,10 @@ Window::Window(int width, int height) :
     backgroundSprite.setColor(sf::Color(0xFFFFFF50));
     backgroundSprite.scale(0.7, 0.7);
 
+    obstacleTexture.loadFromFile("binarycode.jpeg");
+    obstacleSprite.setTexture(obstacleTexture);
+    obstacleSprite.scale(0.75, 0.75);
+
     stopTexture.loadFromFile("stop.png");
     startTexture.loadFromFile("play.png");
     clearTexture.loadFromFile("replay.png");
@@ -101,6 +105,9 @@ sf::Texture Window::constructScenario()
     bool isLeftPressed = false;
     bool ended = false;
 
+    sf::RenderTexture texturedBuffer;
+    texturedBuffer.create(scenarioTexture.getSize().x, scenarioTexture.getSize().y);
+
     while (isOpen() && !ended) {
         sf::Vector2f mousePos(sf::Mouse::getPosition(*this));
 
@@ -129,7 +136,7 @@ sf::Texture Window::constructScenario()
                 stopButton.setDisabled(false);
                 clearButton.setDisabled(true);
 
-                sf::Texture tex(scenarioTexture.getTexture());
+                sf::Texture tex(texturedBuffer.getTexture());
                 return tex;
             }
 
@@ -168,11 +175,16 @@ sf::Texture Window::constructScenario()
 
         scenarioTexture.display();
 
+        texturedBuffer.clear(sf::Color::Transparent);
+        texturedBuffer.draw(obstacleSprite);
+        texturedBuffer.draw(sf::Sprite(scenarioTexture.getTexture()), sf::RenderStates(sf::BlendMultiply));
+        texturedBuffer.display();
+
         clear();
         draw(backgroundSprite);
         draw(destination);
         draw(start);
-        draw(sf::Sprite(scenarioTexture.getTexture()));
+        draw(sf::Sprite(texturedBuffer.getTexture()));
         drawPane();
         display();
     }
@@ -434,6 +446,10 @@ bool Window::loop()
     float speed = 1;
 
     sf::Texture scenarioTexture(constructScenario());
+    if (scenarioTexture.getSize().x == 0) {
+        return false;
+    }
+
     sf::Sprite scenario(scenarioTexture);
     scenarioImage = scenarioTexture.copyToImage();
 
@@ -630,6 +646,11 @@ bool Window::loop()
 
 bool Window::carCollides() const
 {
+    sf::FloatRect stage(0, 0, stageSize.x, stageSize.y);
+    if (!stage.contains(carSprite.getPosition())) {
+        return true;
+    }
+
     for (const sf::FloatRect& rect : obstacles) {
         sf::FloatRect intersection;
         if (rect.intersects(carSprite.getGlobalBounds(), intersection)) {
