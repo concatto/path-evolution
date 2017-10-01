@@ -126,7 +126,7 @@ void BinarySelector::setPosition(const sf::Vector2f& pos)
 
 void BinarySelector::processEvent(const sf::Event& event)
 {
-    if (event.type == sf::Event::MouseButtonPressed) {
+    if (!disabled && event.type == sf::Event::MouseButtonPressed) {
         if (event.mouseButton.button == sf::Mouse::Left) {
             for (int i = 0; i < sprites.size(); i++) {
                 if (sprites[i].getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {

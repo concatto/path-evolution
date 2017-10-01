@@ -142,9 +142,9 @@ sf::Texture Window::constructScenario()
                 stopButton.setDisabled(false);
                 clearButton.setDisabled(true);
 
-//                for (const SelectorConfig& config : objectiveData) {
-//                    config.first->setDisabled(true);
-//                }
+                for (const SelectorConfig& config : objectiveData) {
+                    config.first->setDisabled(true);
+                }
 
                 sf::Texture tex(texturedBuffer.getTexture());
                 return tex;
@@ -608,9 +608,9 @@ bool Window::loop()
                 stopButton.setDisabled(true);
                 clearButton.setDisabled(false);
 
-//                for (const SelectorConfig& config : objectiveData) {
-//                    config.first->setDisabled(false);
-//                }
+                for (const SelectorConfig& config : objectiveData) {
+                    config.first->setDisabled(false);
+                }
 
                 evolverThread.join();
                 return true;
