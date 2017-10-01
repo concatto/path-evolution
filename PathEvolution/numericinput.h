@@ -12,6 +12,7 @@ private:
     sf::RectangleShape background;
     sf::Text text;
     sf::RectangleShape bounds;
+    bool firstInput = false;
 
 public:
     NumericInput();

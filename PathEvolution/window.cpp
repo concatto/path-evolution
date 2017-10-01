@@ -12,7 +12,8 @@ const sf::Color Window::paneColor = sf::Color(0xEBEBEBFF);
 Window::Window(int width, int height) :
     sf::RenderWindow(sf::VideoMode(width, height), "PathEvolution", sf::Style::Default, sf::ContextSettings(0, 0, 8)),
     stageSize(width - paneWidth, height),
-    pane(sf::Vector2f(paneWidth, height))
+    pane(sf::Vector2f(paneWidth, height)),
+    distanceSelector(2)
 {
     setFramerateLimit(60);
     arrays.push_back(sf::VertexArray(sf::LinesStrip));
@@ -24,7 +25,7 @@ Window::Window(int width, int height) :
 
     obstacleTexture.loadFromFile("binarycode.jpeg");
     obstacleSprite.setTexture(obstacleTexture);
-    obstacleSprite.scale(0.75, 0.75);
+    obstacleSprite.scale(0.9, 0.9);
 
     stopTexture.loadFromFile("stop.png");
     startTexture.loadFromFile("play.png");
@@ -58,18 +59,23 @@ Window::Window(int width, int height) :
         {&automaticDestinationSelector, {L"Destino automático", L"Desativar", L"Ativar"}},
         {&stopSelector, {L"Parar ao colidir", L"Desativar", L"Ativar"}},
         {&collisionSelector, {L"Colisões", L"Minimizar", L"Maximizar"}},
-        {&distanceSelector, {L"Distância ao objetivo", L"Minimizar", L"Maximizar"}},
+        {&distanceSelector, {L"Distância ao objetivo", {"Minimizar", "Final"}, {"Maximizar", "Total"}}},
         {&arcLengthSelector, {L"Caminho percorrido", L"Minimizar", L"Maximizar"}},
     });
 
     for (const SelectorConfig& config : objectiveData) {
         BinarySelector* selector = config.first;
-        selector->setTitle(config.second[0]);
-        selector->setLeftString(config.second[1]);
-        selector->setRightString(config.second[2]);
+        selector->setTitle(config.second.title);
         selector->setBackgroundColor(paneColor);
         selector->setWidth(paneWidth);
+
+        for (int i = 0; i < config.second.left.size(); i++) {
+            selector->setLeftString(config.second.left[i], i);
+            selector->setRightString(config.second.right[i], i);
+        }
     }
+
+    automaticDestinationSelector.setRightActive(true);
 
     pane.setFillColor(paneColor);
     pane.setPosition(stageSize.x, 0);
@@ -88,11 +94,11 @@ Window::Window(int width, int height) :
 
 void Window::drawBorder(sf::RenderTexture& texture)
 {
-    sf::RectangleShape border(sf::Vector2f(stageSize) - sf::Vector2f(10, 10));
+    sf::RectangleShape border(sf::Vector2f(stageSize) - sf::Vector2f(20, 20));
     Util::centralizeOrigin(border);
     border.setPosition(stageSize.x / 2.0, stageSize.y / 2.0);
     border.setOutlineColor(sf::Color::White);
-    border.setOutlineThickness(10);
+    border.setOutlineThickness(20);
     border.setFillColor(sf::Color::Transparent);
 
     texture.draw(border);
@@ -471,8 +477,8 @@ bool Window::loop()
         destination.getPosition().y / stageSize.y
     };
 
-    DifferentialEvolver evolver(0.7, 0.05);
-    evolver.initialize(50, 30, -0.6, 1.6,
+    DifferentialEvolver evolver(0.75, 0.03);
+    evolver.initialize(60, 40, -0.5, 1.5,
         {start.getPosition().x / stageSize.x, start.getPosition().y / stageSize.y},
         (automaticDestinationSelector.isLeftActive() ? std::vector<double>() : suffix)
     );
@@ -506,7 +512,7 @@ bool Window::loop()
 
             if (t != 0) {
                 sf::Vector2f delta = pos - oldPos;
-                sf::Vector2f deltaDestination = pos - destination.getPosition();
+                sf::Vector2f deltaDestination = destination.getPosition() - pos;
 
                 arcLength += std::hypot(delta.x / stageSize.x, delta.y / stageSize.y);
                 distanceSum += std::hypot(deltaDestination.x / stageSize.x, deltaDestination.y / stageSize.y);
@@ -529,12 +535,13 @@ bool Window::loop()
         }
 
         sf::Vector2f delta = destination.getPosition() - carSprite.getPosition();
-        float distance = std::hypot(delta.x / stageSize.x, delta.y / stageSize.y);
+        float finalDistance = std::hypot(delta.x / stageSize.x, delta.y / stageSize.y);
 
         //IMPORTANT: check weight scaling when collide-stopping
         collisions = collisions * collisionSelector.getWeight();
-        distance = distance * distanceSelector.getWeight();
+        finalDistance = finalDistance * distanceSelector.getWeight();
         arcLength = arcLength * arcLengthSelector.getWeight();
+        distanceSum = distanceSum * arcLengthSelector.getWeight();
 
         carSprite.setTexture(carTex);
         if (collisionSelector.isLeftActive()) {
@@ -545,11 +552,12 @@ bool Window::loop()
             arcLength *= -1;
         }
 
-        if (distanceSelector.isLeftActive()) {
-            distance *= -1;
+        if (distanceSelector.isLeftActive(0)) {
+            finalDistance *= -1;
+            distanceSum *= -1;
         }
 
-        return collisions + arcLength + distance;
+        return collisions + arcLength + (distanceSelector.isLeftActive(1) ? finalDistance : distanceSum);
     });
 
     trajectories.clear();
@@ -646,14 +654,16 @@ bool Window::loop()
 
 bool Window::carCollides() const
 {
+    sf::FloatRect stageBuffered(-20, -20, stageSize.x + 40, stageSize.y + 40);
     sf::FloatRect stage(0, 0, stageSize.x, stageSize.y);
-    if (!stage.contains(carSprite.getPosition())) {
+    if (!stage.contains(carSprite.getPosition()) && stageBuffered.contains(carSprite.getPosition())) {
         return true;
     }
 
+    sf::FloatRect bounds = carSprite.getGlobalBounds();
     for (const sf::FloatRect& rect : obstacles) {
         sf::FloatRect intersection;
-        if (rect.intersects(carSprite.getGlobalBounds(), intersection)) {
+        if (rect.intersects(bounds, intersection)) {
             if (!isEmpty(scenarioImage, intersection)) {
                 return true;
             }

@@ -5,38 +5,43 @@
 sf::Texture BinarySelector::leftTexture = Util::loadTexture("left3.png");
 sf::Texture BinarySelector::rightTexture = Util::loadTexture("right3.png");
 
-BinarySelector::BinarySelector()
+BinarySelector::BinarySelector(int nOptions)
 {
-    leftSprite.setTexture(leftTexture);
-    rightSprite.setTexture(rightTexture);
+    sf::Font* font = Util::getFont();
 
-    left.setString("");
-    right.setString("");
+    for (int i = 0; i < nOptions; i++) {
+        options.push_back(true);
 
-    for (sf::Text* text : {&left, &right, &title}) {
-        sf::Font* font = Util::getFont();
-        text->setFont(*font);
-        text->setFillColor(sf::Color::Black);
-        text->setCharacterSize(14);
+        leftSprites.push_back(sf::Sprite(leftTexture));
+        rightSprites.push_back(sf::Sprite(rightTexture));
+
+        leftTexts.push_back(sf::Text("", *font, 14));
+        rightTexts.push_back(sf::Text("", *font, 14));
+
+        leftTexts.back().setFillColor(sf::Color::Black);
+        rightTexts.back().setFillColor(sf::Color::Black);
+
+        Util::centralizeOrigin(leftSprites.back(), leftTexture.getSize());
+        Util::centralizeOrigin(rightSprites.back(), rightTexture.getSize());
     }
 
+    title.setFont(*font);
+    title.setFillColor(sf::Color::Black);
     title.setCharacterSize(20);
-
-    Util::centralizeOrigin(leftSprite, leftTexture.getSize());
-    Util::centralizeOrigin(rightSprite, rightTexture.getSize());
-
     setPosition(sf::Vector2f(0, 0));
     setBackgroundColor(sf::Color::White);
+
+    verticalSpacing = leftTexture.getSize().y + 20;
 }
 
-void BinarySelector::setLeftString(const std::wstring& str)
+void BinarySelector::setLeftString(const std::wstring& str, int index)
 {
-    left.setString(str);
+    leftTexts[index].setString(str);
 }
 
-void BinarySelector::setRightString(const std::wstring& str)
+void BinarySelector::setRightString(const std::wstring& str, int index)
 {
-    right.setString(str);
+    rightTexts[index].setString(str);
 }
 
 void BinarySelector::setBackgroundColor(const sf::Color& color)
@@ -46,52 +51,56 @@ void BinarySelector::setBackgroundColor(const sf::Color& color)
 
 void BinarySelector::setWidth(float width)
 {
-    background.setSize(sf::Vector2f(width, 110));
+    background.setSize(sf::Vector2f(width, 65 + options.size() * verticalSpacing));
 }
 
-bool BinarySelector::isLeftActive() const
+bool BinarySelector::isLeftActive(int index) const
 {
-    return leftActive;
+    return options[index];
 }
 
-void BinarySelector::setLeftActive(bool value)
+void BinarySelector::setLeftActive(bool value, int index)
 {
-    leftActive = value;
+    options[index] = value;
 }
 
-bool BinarySelector::isRightActive() const
+bool BinarySelector::isRightActive(int index) const
 {
-    return !isLeftActive();
+    return !isLeftActive(index);
 }
 
-void BinarySelector::setRightActive(bool value)
+void BinarySelector::setRightActive(bool value, int index)
 {
-    setLeftActive(!value);
+    setLeftActive(!value, index);
 }
 
 void BinarySelector::setPosition(const sf::Vector2f& pos)
 {
-    sf::FloatRect leftBounds = left.getLocalBounds();
-    left.setOrigin(leftBounds.left + leftBounds.width, 0);
-    right.setOrigin(0, 0);
-
     background.setPosition(pos);
-
     sf::Vector2f size = background.getSize();
-    sf::Vector2f spritePos(pos.x + (size.x * 0.5), pos.y + (size.y * 0.7));
-    leftSprite.setPosition(spritePos);
-    rightSprite.setPosition(spritePos);
 
-    float horizontalShift = leftTexture.getSize().x * 0.666;
-    float verticalShift = Util::calculateFontMiddle(left.getFont(), left.getCharacterSize());
+    for (int i = 0; i < leftSprites.size(); i++) {
+        sf::FloatRect leftBounds = leftTexts[i].getLocalBounds();
+        leftTexts[i].setOrigin(leftBounds.left + leftBounds.width, 0);
+        rightTexts[i].setOrigin(0, 0);
 
-    left.setPosition(spritePos - sf::Vector2f(horizontalShift, 0));
-    right.setPosition(spritePos + sf::Vector2f(horizontalShift, 0));
+        float dy = i * verticalSpacing;
 
-    float delta = left.getGlobalBounds().top - (leftSprite.getPosition().y);
+        sf::Vector2f spritePos(pos.x + (size.x * 0.5), pos.y + title.getLocalBounds().height + 50 + dy);
+        leftSprites[i].setPosition(spritePos);
+        rightSprites[i].setPosition(spritePos);
 
-    left.move(0, -delta - verticalShift);
-    right.move(0, -delta - verticalShift);
+        float horizontalShift = leftTexture.getSize().x * 0.666;
+        float verticalShift = Util::calculateFontMiddle(leftTexts[i].getFont(), leftTexts[i].getCharacterSize());
+
+        leftTexts[i].setPosition(spritePos - sf::Vector2f(horizontalShift, 0));
+        rightTexts[i].setPosition(spritePos + sf::Vector2f(horizontalShift, 0));
+
+        float delta = leftTexts[i].getGlobalBounds().top - (leftSprites[i].getPosition().y);
+
+        leftTexts[i].move(0, -delta - verticalShift);
+        rightTexts[i].move(0, -delta - verticalShift);
+    }
 
     float margin = 12;
     title.setPosition(pos.x + margin, pos.y);
@@ -102,8 +111,11 @@ void BinarySelector::processEvent(const sf::Event& event)
 {
     if (event.type == sf::Event::MouseButtonPressed) {
         if (event.mouseButton.button == sf::Mouse::Left) {
-            if (leftSprite.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
-                setLeftActive(!isLeftActive());
+            for (int i = 0; i < leftSprites.size(); i++) {
+                if (leftSprites[i].getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                    setLeftActive(!isLeftActive(i), i);
+                    break; // Can't click on two selectors at the same time!
+                }
             }
         }
     }
@@ -117,15 +129,13 @@ void BinarySelector::setTitle(const std::wstring& title)
 void BinarySelector::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
     target.draw(background);
-    target.draw(isLeftActive() ? leftSprite : rightSprite);
     target.draw(title);
-    target.draw(left);
-    target.draw(right);
-    sf::CircleShape shape(1);
 
-    shape.setFillColor(sf::Color::Red);
-    shape.setPosition(left.getGlobalBounds().left, left.getGlobalBounds().top);
-    target.draw(shape);
+    for (int i = 0; i < leftSprites.size(); i++) {
+        target.draw(isLeftActive(i) ? leftSprites[i] : rightSprites[i]);
+        target.draw(leftTexts[i]);
+        target.draw(rightTexts[i]);
+    }
 }
 
 const sf::RectangleShape& BinarySelector::getBackground() const

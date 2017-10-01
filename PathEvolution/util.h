@@ -5,6 +5,7 @@
 #include <utility>
 #include <set>
 #include <unordered_set>
+#include <unordered_map>
 #include <SFML/Graphics.hpp>
 
 using Point2D = std::pair<double, double>;
@@ -12,7 +13,9 @@ using Point2D = std::pair<double, double>;
 class Util
 {
 private:
+    using BezierMemo = std::unordered_map<int, std::unordered_map<double, double>>;
     static sf::Font* font;
+    static BezierMemo bezierMemo;
 
 public:
     template <class T, class U>

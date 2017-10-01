@@ -21,10 +21,22 @@ struct Trajectory {
         va(va), fitness(fitness), remainingTime(remainingTime) {}
 };
 
+struct SelectorLabelling {
+    sf::String title;
+    std::vector<sf::String> left;
+    std::vector<sf::String> right;
+
+    SelectorLabelling(const sf::String& title, const std::vector<sf::String>& left, const std::vector<sf::String>& right) :
+        title(title), left(left), right(right) {}
+
+    SelectorLabelling(const sf::String& title, const sf::String& left, const sf::String& right) :
+        title(title), left({left}), right({right}) {}
+};
+
 class Window : public sf::RenderWindow
 {
 private:
-    using SelectorConfig = std::pair<BinarySelector*, std::array<std::wstring, 3>>;
+    using SelectorConfig = std::pair<BinarySelector*, SelectorLabelling>;
 
     std::mutex mutex;
     bool running;

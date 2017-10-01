@@ -8,6 +8,7 @@
 #include <sstream>
 
 sf::Font* Util::font = nullptr;
+Util::BezierMemo Util::bezierMemo = Util::BezierMemo();
 
 sf::Texture Util::loadTexture(const std::string& file)
 {
@@ -126,7 +127,19 @@ Point2D Util::bezierCurve(double t, const std::vector<Point2D> points)
     Point2D point(0, 0);
 
     for (int i = 0; i <= n; i++) {
-        double c = binomialCoefficient(n, i) * std::pow(1 - t, n - i) * std::pow(t, i);
+        double c;
+        if (bezierMemo.find(i) != bezierMemo.end()) {
+            if (bezierMemo[i].find(t) != bezierMemo[i].end()) {
+                c = bezierMemo[i][t];
+            } else {
+                c = binomialCoefficient(n, i) * std::pow(1 - t, n - i) * std::pow(t, i);
+                bezierMemo[i][t] = c;
+            }
+        } else {
+            c = binomialCoefficient(n, i) * std::pow(1 - t, n - i) * std::pow(t, i);
+            bezierMemo[i] = std::unordered_map<double, double>();
+            bezierMemo[i][t] = c;
+        }
 
         point.first += points[i].first * c;
         point.second += points[i].second * c;

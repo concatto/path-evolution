@@ -10,7 +10,7 @@ private:
     NumericInput input;
 
 public:
-    WeightedBinarySelector();
+    WeightedBinarySelector(int nOptions = 1);
     float getWeight() const;
     virtual void setWidth(float width) override;
     virtual void setPosition(const sf::Vector2f& pos) override;

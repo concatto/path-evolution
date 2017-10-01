@@ -11,24 +11,25 @@ private:
     static sf::Texture rightTexture;
     static const sf::Color TextColor;
 
+    float verticalSpacing;
     sf::Text title;
-    sf::Text left;
-    sf::Text right;
-    sf::Sprite leftSprite;
-    sf::Sprite rightSprite;
+    std::vector<sf::Text> leftTexts;
+    std::vector<sf::Text> rightTexts;
+    std::vector<sf::Sprite> leftSprites;
+    std::vector<sf::Sprite> rightSprites;
     sf::RectangleShape background;
-    bool leftActive = true;
+    std::vector<bool> options;
 
 public:
-    BinarySelector();
+    BinarySelector(int nOptions = 1);
 
-    void setLeftString(const std::wstring& str);
-    void setRightString(const std::wstring& str);
+    void setLeftString(const std::wstring& str, int index = 0);
+    void setRightString(const std::wstring& str, int index = 0);
     void setTitle(const std::wstring& title);
-    bool isLeftActive() const;
-    void setLeftActive(bool value);
-    bool isRightActive() const;
-    void setRightActive(bool value);
+    bool isLeftActive(int index = 0) const;
+    void setLeftActive(bool value, int index = 0);
+    bool isRightActive(int index = 0) const;
+    void setRightActive(bool value, int index = 0);
     void setBackgroundColor(const sf::Color& color);
     virtual void setWidth(float width);
     virtual void setPosition(const sf::Vector2f& pos);

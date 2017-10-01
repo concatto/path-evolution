@@ -41,6 +41,11 @@ float NumericInput::getValue() const
 void NumericInput::processEvent(const sf::Event& event)
 {
     if (event.type == sf::Event::TextEntered && focused) {
+        if (firstInput) {
+            textualValue.clear();
+            firstInput = false;
+        }
+
         if (event.text.unicode == '\b') {
             if (!textualValue.empty()) {
                 if (textualValue.back() == '.') {
@@ -73,9 +78,15 @@ void NumericInput::processEvent(const sf::Event& event)
             text.setString(textualValue);
         }
     } else if (event.type == sf::Event::MouseButtonPressed) {
+        bool prev = focused;
         focused = background.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y);
         if (focused) {
             background.setOutlineColor(sf::Color(0x1C62B9FF));
+
+            // Was not focused before
+            if (!prev) {
+                firstInput = true;
+            }
         } else {
             background.setOutlineColor(sf::Color(0xCCCCCCFF));
         }

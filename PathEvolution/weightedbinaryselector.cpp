@@ -1,6 +1,7 @@
 #include "weightedbinaryselector.h"
 
-WeightedBinarySelector::WeightedBinarySelector()
+WeightedBinarySelector::WeightedBinarySelector(int nOptions)
+    : BinarySelector(nOptions)
 {
     input.setValue(1);
 }
