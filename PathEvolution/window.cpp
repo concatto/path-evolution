@@ -23,7 +23,7 @@ Window::Window(int width, int height) :
     backgroundSprite.setColor(sf::Color(0xFFFFFF50));
     backgroundSprite.scale(0.7, 0.7);
 
-    obstacleTexture.loadFromFile("binarycode.jpeg");
+    obstacleTexture.loadFromFile("binarycode3.jpg");
     obstacleSprite.setTexture(obstacleTexture);
     obstacleSprite.scale(0.9, 0.9);
 
@@ -141,6 +141,10 @@ sf::Texture Window::constructScenario()
                 startButton.setDisabled(true);
                 stopButton.setDisabled(false);
                 clearButton.setDisabled(true);
+
+//                for (const SelectorConfig& config : objectiveData) {
+//                    config.first->setDisabled(true);
+//                }
 
                 sf::Texture tex(texturedBuffer.getTexture());
                 return tex;
@@ -301,7 +305,7 @@ int Window::calculateNextPosition(int k, float speed, const sf::VertexArray& va)
     return nextK;
 }
 
-void Window::updateTrajectories(const DifferentialEvolver& evolver, const sf::Sprite& scenario)
+void Window::updateTrajectories(const DifferentialEvolver& evolver, const sf::Sprite& scenario, std::deque<Trajectory>& trajectories, sf::RenderTexture& offscreenStage)
 {
     const std::vector<DifferentialEvolver::Individual>& originalPopulation = evolver.getPopulation();
 
@@ -311,7 +315,7 @@ void Window::updateTrajectories(const DifferentialEvolver& evolver, const sf::Sp
         trajectory.remainingTime--;
     }
 
-    while (trajectories.front().remainingTime == 0) {
+    while (!trajectories.empty() && trajectories.front().remainingTime == 0) {
         trajectories.pop_front();
     }
 
@@ -330,6 +334,7 @@ void Window::updateTrajectories(const DifferentialEvolver& evolver, const sf::Sp
 
     {
         std::lock_guard<std::mutex> lock(mutex);
+        setActive(true);
         offscreenStage.clear(sf::Color::Transparent);
         offscreenStage.draw(scenario);
 
@@ -350,8 +355,9 @@ void Window::updateTrajectories(const DifferentialEvolver& evolver, const sf::Sp
 
             offscreenStage.draw(va);
         }
-
         offscreenStage.display();
+        draw(sf::Sprite(offscreenStage.getTexture()));
+        setActive(false);
         dataAvailable = true;
     }
 
@@ -477,8 +483,8 @@ bool Window::loop()
         destination.getPosition().y / stageSize.y
     };
 
-    DifferentialEvolver evolver(0.75, 0.03);
-    evolver.initialize(60, 40, -0.5, 1.5,
+    DifferentialEvolver evolver(0.75, 0.06);
+    evolver.initialize(50, 30, -0.5, 1.5,
         {start.getPosition().x / stageSize.x, start.getPosition().y / stageSize.y},
         (automaticDestinationSelector.isLeftActive() ? std::vector<double>() : suffix)
     );
@@ -561,12 +567,19 @@ bool Window::loop()
     });
 
     trajectories.clear();
+    stageBuffer.clear(sf::Color::Transparent);
+    stageBuffer.draw(scenario);
+    stageBuffer.display();
+    offscreenStage.clear(sf::Color::Transparent);
+    offscreenStage.display();
+
+    std::cout << "Starting thread\n";
 
     std::thread evolverThread([&]() {
-        for (generation = 0; generation < 400 && running; generation++) {
+        for (generation = 0; running; generation++) {
             evolver.improve();
 
-            updateTrajectories(evolver, scenario);
+            updateTrajectories(evolver, scenario, trajectories, offscreenStage);
         }
     });
 
@@ -575,11 +588,10 @@ bool Window::loop()
 
 //    carSprite.setPosition(va[k].position);
 
-    stageBuffer.clear(sf::Color::Transparent);
-    stageBuffer.draw(scenario);
-    stageBuffer.display();
 
     dataAvailable = false;
+
+    std::cout << "Starting loop\n";
 
     while (isOpen() && running) {
         while (pollEvent(event)) {
@@ -595,10 +607,18 @@ bool Window::loop()
                 startButton.setDisabled(false);
                 stopButton.setDisabled(true);
                 clearButton.setDisabled(false);
+
+//                for (const SelectorConfig& config : objectiveData) {
+//                    config.first->setDisabled(false);
+//                }
+
                 evolverThread.join();
                 return true;
             }
         }
+
+        std::lock_guard<std::mutex> lock(mutex);
+        setActive(true);
 
         clear();
 
@@ -606,7 +626,7 @@ bool Window::loop()
         draw(sf::Sprite(stageBuffer.getTexture()));
 
         if (dataAvailable) {
-            std::lock_guard<std::mutex> lock(mutex);
+
             stageBuffer.clear(sf::Color::Transparent);
             stageBuffer.draw(sf::Sprite(offscreenStage.getTexture()));
             stageBuffer.display();
@@ -649,6 +669,7 @@ bool Window::loop()
 //        }
 
         display();
+        setActive(false);
     }
 }
 

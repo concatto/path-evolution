@@ -9,16 +9,18 @@ class BinarySelector : public sf::Drawable
 private:
     static sf::Texture leftTexture;
     static sf::Texture rightTexture;
+    static sf::Texture leftTextureDisabled;
+    static sf::Texture rightTextureDisabled;
     static const sf::Color TextColor;
 
     float verticalSpacing;
     sf::Text title;
     std::vector<sf::Text> leftTexts;
     std::vector<sf::Text> rightTexts;
-    std::vector<sf::Sprite> leftSprites;
-    std::vector<sf::Sprite> rightSprites;
+    std::vector<sf::Sprite> sprites;
     sf::RectangleShape background;
     std::vector<bool> options;
+    bool disabled = false;
 
 public:
     BinarySelector(int nOptions = 1);
@@ -35,6 +37,8 @@ public:
     virtual void setPosition(const sf::Vector2f& pos);
     virtual void processEvent(const sf::Event& event);
     virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
+    bool isDisabled() const;
+    void setDisabled(bool disabled);
 
     const sf::RectangleShape& getBackground() const;
 };

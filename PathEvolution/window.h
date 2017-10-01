@@ -97,7 +97,7 @@ private:
     sf::VertexArray constructBezierCurve(const std::vector<Point2D> &points, double step, sf::Color color);
 
     int calculateNextPosition(int k, float speed, const sf::VertexArray &va);
-    void updateTrajectories(const DifferentialEvolver &evolver, const sf::Sprite &scenario);
+    void updateTrajectories(const DifferentialEvolver &evolver, const sf::Sprite &scenario, std::deque<Trajectory>& trajectories, sf::RenderTexture& offscreenStage);
     bool isInStage(const sf::Vector2f& point);
     void drawPane();
     bool carCollides() const;
