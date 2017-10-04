@@ -10,7 +10,7 @@
 const sf::Color Window::paneColor = sf::Color(0xEBEBEBFF);
 
 Window::Window(int width, int height) :
-    sf::RenderWindow(sf::VideoMode(width, height), "PathEvolution", sf::Style::Default, sf::ContextSettings(0, 0, 8)),
+    sf::RenderWindow(sf::VideoMode(width, height), L"Evolução de Caminhos", sf::Style::Default, sf::ContextSettings(0, 0, 8)),
     stageSize(width - paneWidth, height),
     pane(sf::Vector2f(paneWidth, height)),
     distanceSelector(2)
@@ -108,11 +108,13 @@ sf::Texture Window::constructScenario()
 {
     sf::Event event;
     sf::Vector2f oldPosition;
-    bool isLeftPressed = false;
+    bool isDrawing = false;
     bool ended = false;
 
     sf::RenderTexture texturedBuffer;
     texturedBuffer.create(scenarioTexture.getSize().x, scenarioTexture.getSize().y);
+
+    sf::BlendMode clearBlend(sf::BlendMode::One, sf::BlendMode::Zero);
 
     while (isOpen() && !ended) {
         sf::Vector2f mousePos(sf::Mouse::getPosition(*this));
@@ -123,12 +125,10 @@ sf::Texture Window::constructScenario()
             } else if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::Return) {
                     ended = true;
-                } else if (event.key.code == sf::Keyboard::Space && isInStage(mousePos)) {
-                    destination.setPosition(mousePos);
-                }
-            } else if (event.type == sf::Event::MouseButtonPressed) {
-                if (event.mouseButton.button == sf::Mouse::Right && isInStage(mousePos)) {
+                } else if (event.key.code == sf::Keyboard::C && isInStage(mousePos)) {
                     start.setPosition(mousePos);
+                } else if (event.key.code == sf::Keyboard::F && isInStage(mousePos)) {
+                    destination.setPosition(mousePos);
                 }
             }
 
@@ -156,31 +156,34 @@ sf::Texture Window::constructScenario()
             }
         }
 
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && isInStage(mousePos)) {
+        bool left = sf::Mouse::isButtonPressed(sf::Mouse::Left);
+        bool right = sf::Mouse::isButtonPressed(sf::Mouse::Right);
+
+        if ((left || right) && isInStage(mousePos)) {
             sf::CircleShape circle(6, 100);
             circle.setOrigin(circle.getRadius(), circle.getRadius());
             circle.setPosition(mousePos);
-            circle.setFillColor(sf::Color::White);
+            circle.setFillColor(right ? sf::Color::Transparent : sf::Color::White);
 
-            if (isLeftPressed) {
+            if (isDrawing) {
                 sf::Vector2f delta = mousePos - oldPosition;
                 sf::RectangleShape internal(sf::Vector2f(std::hypot(delta.x, delta.y), circle.getRadius() * 2));
 
-                internal.setFillColor(sf::Color::White);
+                internal.setFillColor(right ? sf::Color::Transparent : sf::Color::White);
                 internal.setOrigin(sf::Vector2f(0, circle.getRadius()));
                 internal.setPosition(oldPosition);
                 internal.setRotation(Util::toDegrees(std::atan2(delta.y, delta.x)));
 
-                scenarioTexture.draw(internal);
+                scenarioTexture.draw(internal, sf::RenderStates(clearBlend));
             }
 
-            scenarioTexture.draw(circle);
+            scenarioTexture.draw(circle, sf::RenderStates(clearBlend));
             scenarioTexture.display();
             oldPosition = mousePos;
 
-            isLeftPressed = true;
+            isDrawing = true;
         } else {
-            isLeftPressed = false;
+            isDrawing = false;
         }
 
         scenarioTexture.display();
